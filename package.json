@@ -1,0 +1,46 @@
+{
+  "name": "@common-grants/form-spec",
+  "version": "0.0.0",
+  "description": "A TypeSpec library for specifying grant application forms once and emitting portable form artifacts.",
+  "license": "CC0-1.0",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "typespec": "./lib/main.tsp",
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": ["dist/src", "lib", "contract", "README.md", "LICENSE.md"],
+  "engines": { "node": ">=20" },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -p . --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint .",
+    "format": "prettier --write . && tsp format \"lib/**/*.tsp\"",
+    "check:format": "prettier --check . && tsp format --check \"lib/**/*.tsp\"",
+    "check:types": "tsc -p . --noEmit",
+    "checks": "pnpm check:format && pnpm lint && pnpm check:types && pnpm test"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.13.0",
+    "@typespec/json-schema": "^1.13.0"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "^1.13.0",
+    "@typespec/json-schema": "^1.13.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "ajv": "^8.20.0",
+    "eslint": "^9.20.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^4.1.11"
+  }
+}
