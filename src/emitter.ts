@@ -1,7 +1,17 @@
-import type { EmitContext, Model, Namespace } from "@typespec/compiler";
+import type {
+  EmitContext,
+  Model,
+  Namespace,
+  Program,
+} from "@typespec/compiler";
 import { emitFile, resolvePath } from "@typespec/compiler";
-import { $onEmit as emitJsonSchema } from "@typespec/json-schema";
-import { allBlocks } from "./model.js";
+import {
+  $onEmit as emitJsonSchema,
+  findBaseUri,
+  getId,
+} from "@typespec/json-schema";
+import { allBlocks, type Block } from "./model.js";
+import { reportDiagnostic } from "./lib.js";
 import { blockSchemaRef } from "./decorators/index.js";
 import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
 import { emitBlockUi } from "./emitters/block-ui.js";
@@ -69,8 +79,19 @@ export async function $onEmit(
 
   for (const block of blocks) {
     const dir = refToDir.get(blockSchemaRef(block.id))!;
-    const stock = byId.get(blockSchemaRef(block.id));
-    if (!stock) continue;
+    const stock = byId.get(resolvedSchemaId(program, block));
+    if (!stock) {
+      reportDiagnostic(program, {
+        code: "block-not-emitted",
+        target: block.model,
+        format: {
+          name: block.model.name || block.id,
+          id: resolvedSchemaId(program, block),
+          available: [...byId.keys()].sort().join(", ") || "none",
+        },
+      });
+      continue;
+    }
 
     // 3. Inline refs to unpublished declarations into $defs, as the goldens do.
     const defs: Json = {};
@@ -105,6 +126,21 @@ export async function $onEmit(
       });
     }
   }
+}
+
+/**
+ * The `$id` the stock emitter actually wrote for a block.
+ *
+ * We hand it a relative id via `publishAs`, but it resolves that against the nearest
+ * enclosing `@jsonSchema("<base>")` before writing the file -- see `#getDeclId` and
+ * `idWithBaseURI` in `@typespec/json-schema`'s json-schema-emitter. Indexing the staged
+ * output by `$id` therefore only matches if we resolve the id the same way, so this
+ * mirrors that composition using the two accessors that library exports.
+ */
+function resolvedSchemaId(program: Program, block: Block): string {
+  const relative = getId(program, block.model) ?? blockSchemaRef(block.id);
+  const baseUri = findBaseUri(program, block.model);
+  return baseUri ? new URL(relative, baseUri).href : relative;
 }
 
 async function listJson(program: any, dir: string): Promise<string[]> {

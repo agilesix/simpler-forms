@@ -69,6 +69,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Cardinality annotations on model ${"model"} would not be emitted. Put them on a semantic block or on the property where that block is composed.`,
       },
     },
+    "block-not-emitted": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} produced no schema under id "${"id"}", so none of its artifacts were written. The ids that were produced are: ${"available"}.`,
+      },
+    },
     "entity-id-mismatch": {
       severity: "error",
       messages: {
