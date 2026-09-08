@@ -1,6 +1,6 @@
 # form-spec
 
-A [TypeSpec](https://typespec.io) library for specifying grant application forms once and
+The `simpler-forms` package. A [TypeSpec](https://typespec.io) library for specifying grant application forms once and
 emitting portable form artifacts — a JSON Schema for the data, a UI schema for the layout,
 and an index describing how the two relate.
 
@@ -10,21 +10,26 @@ repositories that consume this package.
 
 ## Status
 
-Pre-release. **The package name is not yet pinned** — `@common-grants/form-spec` in
-`package.json` is a working placeholder while the choice between a `@common-grants` scope and
-an unscoped name is settled.
+Pre-release. The package and the TypeSpec library are both named `simpler-forms`, unscoped.
+**That name is not final**, and it should be settled before the first publish rather than
+after.
 
-This is worth pinning before the first publish rather than after. The name is passed to
-`createTypeSpecLibrary`, which makes it the prefix of every diagnostic code and linter rule
-id the library reports. Once a form specification anywhere contains a line like
-`#suppress "@common-grants/form-spec/no-orphan-question"`, renaming the package is a
-breaking change for every consumer. Accordingly, `release.yml` tags releases but does not
-publish to npm.
+The name is passed to `createTypeSpecLibrary` as both `name` and `alias`, which makes it the
+prefix of every diagnostic code and lint rule id the library reports. So a suppression in a
+form specification reads:
+
+```tsp
+#suppress "simpler-forms/no-orphan-question"
+```
+
+Once any specification contains a line like that, renaming the package is a breaking change
+for every consumer. Accordingly, `release.yml` tags releases through release-please but does
+not publish to npm.
 
 ## Install
 
 ```bash
-pnpm add -D @common-grants/form-spec @typespec/compiler @typespec/json-schema
+pnpm add -D simpler-forms @typespec/compiler @typespec/json-schema
 ```
 
 `@typespec/compiler` and `@typespec/json-schema` are peer dependencies, so a consumer
@@ -48,16 +53,27 @@ a fresh clone reports unimplemented decorators until the first build.
 
 ```
 lib/            TypeSpec declarations — the decorator vocabulary
-src/            The library implementation
-  decorators.ts   decorator entry points
+  main.tsp        the entry point a consumer imports
+  meta.tsp        @Meta.*   — question, form, tag, role
+  ui.tsp          @UI.*     — labels, sections, widgets, overrides
+  validation.tsp  @Validation.*
+  types.tsp       shared scalars and enums
+src/            the library implementation
+  public.ts       the API a target emitter reads — the only semver-governed surface
+  decorators/     decorator entry points, one module per namespace
   model.ts        typed accessors over decorator state
   validate.ts     $onValidate — cross-cutting checks reported as diagnostics
   linter.ts       lint rules
   emitter.ts      $onEmit — writes the canonical artifacts
   emitters/       one module per emitted artifact
+  lib.ts          createTypeSpecLibrary — diagnostics, lint rules, emitter options
 contract/       JSON Schemas the emitted artifacts are validated against
 test/           vitest suites, driven by the compiler's createTester
 ```
+
+Only `src/public.ts` is public API. The decorator implementations, emitters and validators
+are internal, and a target emitter reaching past that module depends on something that can
+change in a patch.
 
 ## Design notes
 
