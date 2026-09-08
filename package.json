@@ -1,7 +1,7 @@
 {
-  "name": "@common-grants/form-spec",
+  "name": "simpler-forms",
   "version": "0.0.0",
-  "description": "A TypeSpec library for specifying grant application forms once and emitting portable form artifacts.",
+  "description": "A TypeSpec library for specifying forms once and emitting portable form artifacts.",
   "license": "CC0-1.0",
   "type": "module",
   "main": "dist/src/index.js",
@@ -13,8 +13,16 @@
       "default": "./dist/src/index.js"
     }
   },
-  "files": ["dist/src", "lib", "contract", "README.md", "LICENSE.md"],
-  "engines": { "node": ">=20" },
+  "files": [
+    "dist/src",
+    "lib",
+    "contract",
+    "README.md",
+    "LICENSE.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "build": "tsc -p .",
@@ -37,10 +45,11 @@
     "@typespec/json-schema": "^1.13.0",
     "@vitest/coverage-v8": "^4.1.11",
     "ajv": "^8.20.0",
-    "eslint": "^9.20.0",
+    "eslint": "^9.39.5",
     "prettier": "^3.4.2",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.24.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "@eslint/js": "^9.20.0"
   }
 }

@@ -1,0 +1,6 @@
+{
+  "//": "Type-aware linting needs every file in a project, including tests and config. tsconfig.json excludes test/ so tsc does not emit it into dist, and exclude beats include through extends, so it is overridden here.",
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "test/**/*.ts", "*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
