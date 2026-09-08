@@ -6,6 +6,10 @@ export { $linter } from "./linter.js";
 export { $onValidate } from "./validate.js";
 export * from "./decorators/index.js";
 
+// The API a target emitter reads. See src/public.ts -- this is the semver-governed
+// surface; the rest of src/ is internal.
+export * from "./public.js";
+
 export const $decorators = {
   "SimplerForms.Meta": {
     question: d.$question,
