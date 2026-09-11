@@ -2,7 +2,7 @@
   "name": "simpler-forms",
   "version": "0.0.0",
   "description": "A TypeSpec library for specifying forms once and emitting portable form artifacts.",
-  "license": "CC0-1.0",
+  "license": "MIT",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
@@ -15,15 +15,15 @@
   },
   "files": [
     "dist/src",
+    "src",
     "lib",
-    "contract",
     "README.md",
     "LICENSE.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@11.26.0",
   "scripts": {
     "build": "tsc -p .",
     "watch": "tsc -p . --watch",
