@@ -3,6 +3,14 @@ name: Release
 on:
   push:
     branches: [main]
+  # Manual republish of an existing tag. npm binds a trusted publisher to the
+  # filename of the workflow that runs `pnpm publish`, so retries live here.
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing release tag to publish (e.g. v0.1.0)"
+        required: true
+        type: string
 
 # Each job takes only the scopes it needs, rather than granting them workflow-wide.
 permissions: {}
@@ -18,24 +26,19 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      # CI on the release pull request needs approving by hand. A pull request opened
-      # by GITHUB_TOKEN has its `pull_request` runs held at `action_required`, which is
-      # how the sibling protocol repositories already work. An App token or PAT here
-      # would start them automatically, and is worth adding only if main ever requires
-      # status checks to merge.
+      # Only a push can cut a release; a dispatch publishes the tag it was given.
       - uses: googleapis/release-please-action@v5
         id: release
+        if: github.event_name == 'push'
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  # A tag or release created with GITHUB_TOKEN does not trigger other workflows, so
-  # publishing has to be called from this run rather than keyed to `on: release`.
   publish:
     name: Publish to npm
     needs: release-please
-    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     environment:
       name: npm
@@ -45,15 +48,25 @@ jobs:
       # Mints the OIDC token npm exchanges for a short-lived publish credential,
       # so there is no long-lived NPM_TOKEN in this repository.
       id-token: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || needs.release-please.outputs.tag_name }}
     steps:
-      # The tag, not the branch: main can move between release-please tagging and
-      # this job starting, and what gets published must be what was tagged.
+      # A dispatch input is arbitrary text; reject anything that is not a release
+      # tag before the checkout below runs the code it names.
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.+-]+)?$ ]]; then
+            echo "::error::release_tag must look like 'vX.Y.Z'. Got: $RELEASE_TAG"
+            exit 1
+          fi
+
+      # refs/tags/ pins the checkout to the tag namespace; a same-named branch
+      # cannot be substituted.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: refs/tags/${{ env.RELEASE_TAG }}
 
-      # No version pinned here: the action reads `packageManager` from package.json,
-      # so pnpm is upgraded in one place for local work and CI alike.
+      # No version pinned: the action reads `packageManager` from package.json.
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
@@ -62,9 +75,8 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      # `pnpm publish` shells out to the system npm, which must be 11.5.1 or newer to
-      # perform the OIDC exchange. Node 24 bundles an older npm, which would find no
-      # token, fall back to unauthenticated and fail.
+      # `pnpm publish` shells out to the system npm, which must be >= 11.5.1 for
+      # OIDC trusted publishing; Node 24 bundles an older npm.
       - run: npm install --global npm@latest
 
       - run: pnpm install --frozen-lockfile
@@ -75,6 +87,6 @@ jobs:
       # The last gate before an irreversible publish: a version cannot be replaced.
       - run: pnpm checks
 
-      # No NODE_AUTH_TOKEN: the credential comes from the OIDC exchange. `--no-git-checks`
-      # because the checkout above leaves a detached HEAD, which pnpm otherwise refuses.
+      # No NODE_AUTH_TOKEN: the credential comes from the OIDC exchange.
+      # --no-git-checks: the checkout is a detached tag, not the main branch.
       - run: pnpm publish --provenance --access public --no-git-checks
