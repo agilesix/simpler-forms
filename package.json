@@ -15,8 +15,8 @@
   },
   "files": [
     "dist/src",
+    "src",
     "lib",
-    "contract",
     "README.md",
     "LICENSE.md"
   ],
