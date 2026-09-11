@@ -10,8 +10,11 @@
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },
         { "type": "perf", "section": "Performance" },
+        { "type": "refactor", "section": "Refactoring" },
         { "type": "deps", "section": "Dependencies" },
-        { "type": "docs", "section": "Documentation", "hidden": false }
+        { "type": "docs", "section": "Documentation", "hidden": false },
+        { "type": "chore", "section": "Miscellaneous", "hidden": true },
+        { "type": "ci", "section": "Miscellaneous", "hidden": true }
       ]
     }
   }
