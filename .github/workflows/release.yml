@@ -3,8 +3,8 @@ name: Release
 on:
   push:
     branches: [main]
-  # Manual republish of an existing tag. npm binds a trusted publisher to the
-  # filename of the workflow that runs `pnpm publish`, so retries live here.
+  # Manual republish of an existing tag, for when the publish step fails after
+  # a tag and GitHub release were successfully created
   workflow_dispatch:
     inputs:
       release_tag:
@@ -12,7 +12,8 @@ on:
         required: true
         type: string
 
-# Each job takes only the scopes it needs, rather than granting them workflow-wide.
+# Requires each job to define its own required scopes rather than inheriting
+# a default set of workflow-level permissions
 permissions: {}
 
 jobs:
@@ -45,14 +46,12 @@ jobs:
       url: https://www.npmjs.com/package/simpler-forms
     permissions:
       contents: read
-      # Mints the OIDC token npm exchanges for a short-lived publish credential,
-      # so there is no long-lived NPM_TOKEN in this repository.
+      # Creates the OIDC token that npm uses for trusted publishing
       id-token: write
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || needs.release-please.outputs.tag_name }}
     steps:
-      # A dispatch input is arbitrary text; reject anything that is not a release
-      # tag before the checkout below runs the code it names.
+      # Reject invalid release tags before trying to check out the code
       - name: Validate release tag
         run: |
           if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-+][0-9A-Za-z.+-]+)?$ ]]; then
@@ -60,13 +59,12 @@ jobs:
             exit 1
           fi
 
-      # refs/tags/ pins the checkout to the tag namespace; a same-named branch
-      # cannot be substituted.
+      # refs/tags/ prevents us from accidentally checking out a branch that has
+      # the same name as a tag
       - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ env.RELEASE_TAG }}
 
-      # No version pinned: the action reads `packageManager` from package.json.
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
@@ -75,18 +73,15 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      # `pnpm publish` shells out to the system npm, which must be >= 11.5.1 for
-      # OIDC trusted publishing; Node 24 bundles an older npm.
+      # `pnpm publish` requires npm >= 11.5.1 for trusted publishing
       - run: npm install --global npm@latest
 
       - run: pnpm install --frozen-lockfile
 
-      # dist/ is not committed, and `main`, `types` and `exports` all resolve into it.
       - run: pnpm build
 
-      # The last gate before an irreversible publish: a version cannot be replaced.
       - run: pnpm checks
 
-      # No NODE_AUTH_TOKEN: the credential comes from the OIDC exchange.
-      # --no-git-checks: the checkout is a detached tag, not the main branch.
+      # No NODE_AUTH_TOKEN because the credential comes from the OIDC exchange
+      # `--no-git-checks` allows us to publish from a specific release tag
       - run: pnpm publish --provenance --access public --no-git-checks
