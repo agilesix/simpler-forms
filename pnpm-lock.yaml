@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@eslint/js':
+        specifier: ^9.20.0
+        version: 9.39.5
       '@typespec/compiler':
         specifier: ^1.13.0
         version: 1.15.0
