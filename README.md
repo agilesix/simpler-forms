@@ -108,4 +108,4 @@ this one in `tspconfig.yaml`, rather than by a plugin interface here.
 
 ## License
 
-Public domain, [CC0 1.0 Universal](./LICENSE.md).
+[MIT](./LICENSE.md). Copyright (c) 2026 Agile Six Applications, Inc.
