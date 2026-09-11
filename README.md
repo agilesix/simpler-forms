@@ -1,6 +1,6 @@
-# form-spec
+# simpler-forms
 
-The `simpler-forms` package. A [TypeSpec](https://typespec.io) library for specifying grant application forms once and
+A [TypeSpec](https://typespec.io) library for specifying grant application forms once and
 emitting portable form artifacts — a JSON Schema for the data, a UI schema for the layout,
 and an index describing how the two relate.
 
@@ -10,21 +10,24 @@ repositories that consume this package.
 
 ## Status
 
-Pre-release. The package and the TypeSpec library are both named `simpler-forms`, unscoped.
-**That name is not final**, and it should be settled before the first publish rather than
-after.
+Pre-release, published from `main` as `simpler-forms`, unscoped.
 
-The name is passed to `createTypeSpecLibrary` as both `name` and `alias`, which makes it the
-prefix of every diagnostic code and lint rule id the library reports. So a suppression in a
-form specification reads:
+Versions stay below 1.0 for now. release-please is configured with `bump-minor-pre-major`,
+so a breaking change moves the minor — 0.1.0 to 0.2.0 — instead of jumping to 1.0.0. Read any
+minor bump as potentially breaking until this section says otherwise.
+
+The library name is passed to `createTypeSpecLibrary` as both `name` and `alias`, and it is
+the alias that prefixes every diagnostic code and lint rule id. So a suppression in a form
+specification reads:
 
 ```tsp
 #suppress "simpler-forms/no-orphan-question"
 ```
 
-Once any specification contains a line like that, renaming the package is a breaking change
-for every consumer. Accordingly, `release.yml` tags releases through release-please but does
-not publish to npm.
+Because that prefix comes from the alias and not from the package name, moving the package
+into an npm scope later — `@agilesix/simpler-forms`, say — leaves every suppression already
+written in a specification working. What such a move does change is the import specifier in a
+consumer's specs and its dependency entry, one line each.
 
 ## Install
 
@@ -49,6 +52,18 @@ the `extern dec` declarations it makes, so the TypeSpec sources do not type-chec
 compiled JavaScript exists. This is why CI runs `pnpm build` ahead of `pnpm checks`, and why
 a fresh clone reports unimplemented decorators until the first build.
 
+## Release
+
+`main` is released by [release-please](https://github.com/googleapis/release-please). Pushing a
+conventional commit opens or updates a release pull request; merging that pull request tags the
+release and publishes the tarball to npm.
+
+Publication authenticates through npm trusted publishing, so this repository holds no npm
+token. The workflow exchanges a GitHub OIDC token for a short-lived credential, and npm
+attaches a provenance attestation to the version it accepts. The trusted publisher is
+configured against `.github/workflows/release.yml` by path, so renaming or moving that file
+stops publication until the publisher is updated to match.
+
 ## Layout
 
 ```
@@ -67,7 +82,6 @@ src/            the library implementation
   emitter.ts      $onEmit — writes the canonical artifacts
   emitters/       one module per emitted artifact
   lib.ts          createTypeSpecLibrary — diagnostics, lint rules, emitter options
-contract/       JSON Schemas the emitted artifacts are validated against
 test/           vitest suites, driven by the compiler's createTester
 ```
 
