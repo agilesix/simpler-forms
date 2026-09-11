@@ -9,14 +9,18 @@ jobs:
   build-and-test:
     name: Build, check and test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
     steps:
       - uses: actions/checkout@v7
 
+      # No version pinned here: the action reads `packageManager` from package.json.
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

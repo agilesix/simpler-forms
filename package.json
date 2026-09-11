@@ -21,9 +21,9 @@
     "LICENSE.md"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "packageManager": "pnpm@9.15.4",
+  "packageManager": "pnpm@11.26.0",
   "scripts": {
     "build": "tsc -p .",
     "watch": "tsc -p . --watch",
