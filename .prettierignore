@@ -2,3 +2,7 @@ pnpm-lock.yaml
 dist/
 tsp-output/
 coverage/
+
+# Release Please rewrites these on every release, in its own formatting
+CHANGELOG.md
+.release-please-manifest.json
