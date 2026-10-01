@@ -33,7 +33,9 @@ const conditionSchema = (
               ],
             },
           }
-        : { const: condition.value };
+        : condition.operator === "notEquals"
+          ? { not: { const: condition.value } }
+          : { const: condition.value };
 
 /** A condition over the block root, used only for the bounded cross-field disjunction. */
 const rootConditionSchema = (

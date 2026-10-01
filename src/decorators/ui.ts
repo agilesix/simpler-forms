@@ -7,6 +7,7 @@ import {
   countCondition,
   enumName,
   literal,
+  negatedCondition,
   plain,
   push,
   set,
@@ -135,6 +136,21 @@ export const $enabledWhen = (
   source: ModelProperty,
   equals: unknown,
 ) => push(ctx, stateKeys.enabledWhen, target, condition(source, equals));
+
+/**
+ * Disable the field while the predicate holds, and enable it otherwise.
+ *
+ * Recorded as a negated `enabledWhen` rather than as a state of its own, so every consumer
+ * that already reads enablement gets this for free and cannot disagree with it about which
+ * of the two states is the default. `@UI.disabledWhen(X.province, X.country, CountryCode.USA)`
+ * and a hypothetical `enabledWhen(country != USA)` are the same recorded condition.
+ */
+export const $disabledWhen = (
+  ctx: Ctx,
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: unknown,
+) => push(ctx, stateKeys.enabledWhen, target, negatedCondition(source, equals));
 
 export const $enabledWhenAny = (
   ctx: Ctx,

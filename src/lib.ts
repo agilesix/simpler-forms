@@ -30,7 +30,7 @@ export const $lib = createTypeSpecLibrary({
     "condition-value-not-in-enum": {
       severity: "error",
       messages: {
-        default: paramMessage`"${"value"}" is not a member of ${"enumName"}, so this condition can never hold. Members: ${"members"}.`,
+        default: paramMessage`"${"value"}" is not a member of ${"enumName"}, so this condition is constant -- never holding, or always holding if it is negated. Members: ${"members"}.`,
       },
     },
     "condition-path-unresolved": {

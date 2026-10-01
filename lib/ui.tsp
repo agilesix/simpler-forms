@@ -50,6 +50,19 @@ extern dec enabledWhen(
   source: ModelProperty,
   equals: valueof unknown
 );
+/**
+ * Keep the field visible but disable it while the predicate holds.
+ *
+ * The negation of `enabledWhen`, for source rules stated against the complement of a value
+ * -- "Province is inactive when Country is the US, active otherwise". Enumerating every
+ * other member of a code list instead would produce a condition no reviewer could check
+ * against the sentence it came from.
+ */
+extern dec disabledWhen(
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: valueof unknown
+);
 /** Enable the field when the source equals any one of the supplied values. */
 extern dec enabledWhenAny(
   target: ModelProperty,

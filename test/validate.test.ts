@@ -502,6 +502,51 @@ describe("$onValidate", () => {
         code: "simpler-forms/condition-value-not-in-enum",
       });
     });
+
+    it("checks the value a negated condition names", async () => {
+      const diagnostics = await Tester.diagnose(
+        bank(`
+          enum Country {
+            usa: "USA: UNITED STATES",
+          }
+
+          /** An address. */
+          @Meta.question(#{ id: "generics/address" })
+          @Meta.tag(TagName.address)
+          model Address {
+            country: Country;
+
+            @UI.disabledWhen(Address.country, "USA: UNITED STATE")
+            province?: string;
+          }
+        `),
+      );
+      expectDiagnostics(diagnostics, {
+        code: "simpler-forms/condition-value-not-in-enum",
+      });
+    });
+
+    it("accepts a negated comparison against a member", async () => {
+      expectDiagnosticEmpty(
+        await Tester.diagnose(
+          bank(`
+            enum Country {
+              usa: "USA: UNITED STATES",
+            }
+
+            /** An address. */
+            @Meta.question(#{ id: "generics/address" })
+            @Meta.tag(TagName.address)
+            model Address {
+              country: Country;
+
+              @UI.disabledWhen(Address.country, Country.usa)
+              province?: string;
+            }
+          `),
+        ),
+      );
+    });
   });
 
   describe("condition-path-unresolved", () => {

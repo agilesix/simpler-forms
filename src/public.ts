@@ -44,6 +44,7 @@ export { normalizedOverrideEnabledWhen } from "./emitters/override-condition.js"
 export {
   modelLabel,
   modelOrder,
+  modelOverrides,
   modelAtLeastOneOf,
   /** Own and inherited properties in declaration order, derived declaration winning. */
   modelProperties,

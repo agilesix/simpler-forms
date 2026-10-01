@@ -138,6 +138,11 @@ export function condition(source: ModelProperty, equals: unknown) {
   };
 }
 
+/** `condition`, negated. The source and value are resolved identically. */
+export function negatedCondition(source: ModelProperty, equals: unknown) {
+  return { ...condition(source, equals), operator: "notEquals" as const };
+}
+
 export function countCondition(
   ctx: Ctx,
   target: ModelProperty,
