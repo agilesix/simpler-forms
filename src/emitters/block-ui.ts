@@ -1,18 +1,23 @@
-import type { Program } from "@typespec/compiler";
+import type { Model, ModelProperty, Program } from "@typespec/compiler";
 import { getDoc } from "@typespec/compiler";
 import {
   AtomicCondition,
   Block,
   Condition,
   childBlock,
-  orderedProps,
+  modelLabel,
+  modelOrder,
+  modelOverrides,
+  modelProperties,
   propEnabledWhen,
   propLabel,
+  propOmit,
   propReadOnly,
   propReadOnlyWhen,
   propSection,
   propVisibleWhen,
   propWidget,
+  readBlock,
 } from "../model.js";
 import { normalizedOverrideEnabledWhen } from "./override-condition.js";
 
@@ -156,10 +161,64 @@ export function rescopeUi(node: UiNode, propName: string): UiNode {
 }
 
 /**
+ * Every property a model's answers carry, inherited ones included, in `@UI.order`.
+ *
+ * Not `orderedProps`, which keeps a question to its own properties because its JSON Schema
+ * composes the base through `allOf`. A layout has no `allOf` to fall back on: a question
+ * whose fields are all inherited -- `primary-org/address` extends `generics/address` and adds
+ * none -- would lay out as an empty group, and a form-local extension could not interleave
+ * its fields with the ones it inherits.
+ */
+function layoutProps(program: Program, model: Model): ModelProperty[] {
+  const props = modelProperties(model).filter((p) => !propOmit(program, p));
+  const order = modelOrder(program, model);
+  if (!order) return props;
+  const byName = new Map(props.map((p) => [p.name, p]));
+  const out = order
+    .map((n) => byName.get(n))
+    .filter(Boolean) as ModelProperty[];
+  for (const p of props) if (!out.includes(p)) out.push(p);
+  return out;
+}
+
+/** What laying out a model needs, which a block has and a form-local model can supply. */
+type LayoutSource = Pick<
+  Block,
+  "model" | "scalar" | "label" | "doc" | "sections" | "overrides"
+>;
+
+/** A model laid out as a block would be, whether or not it is one. */
+const layoutSource = (program: Program, model: Model): LayoutSource =>
+  readBlock(program, model) ?? {
+    model,
+    scalar: false,
+    label: modelLabel(program, model),
+    doc: getDoc(program, model),
+    overrides: modelOverrides(program, model),
+  };
+
+/**
+ * The layout of one entry of a repeated property, which JSON Forms reads from a list
+ * control's `options.detail`. Its scopes are relative to the entry rather than the form, so
+ * it is not re-scoped when the list is composed into a larger block.
+ *
+ * Without it a renderer has nothing to order the entry's fields by but the item schema, and
+ * a composed item spreads its fields across `allOf` branches.
+ */
+function itemDetail(program: Program, prop: ModelProperty): UiNode | undefined {
+  const type = prop.type;
+  if (type.kind !== "Model" || !type.indexer) return undefined;
+  const item = type.indexer.value;
+  // A list of scalars has no fields of its own to lay out.
+  if (item.kind !== "Model") return undefined;
+  return emitBlockUi(program, layoutSource(program, item));
+}
+
+/**
  * The canonical UI artifact for one block. Scopes are relative to this block's own
  * root, so it renders standalone; children are incorporated and re-scoped.
  */
-export function emitBlockUi(program: Program, block: Block): UiNode {
+export function emitBlockUi(program: Program, block: LayoutSource): UiNode {
   // A single-value question renders as one Control at its own root.
   if (block.scalar) {
     const node: UiNode = { type: "Control", scope: "#" };
@@ -167,9 +226,7 @@ export function emitBlockUi(program: Program, block: Block): UiNode {
     return node;
   }
 
-  const nodeForProperty = (
-    prop: ReturnType<typeof orderedProps>[number],
-  ): UiNode => {
+  const nodeForProperty = (prop: ModelProperty): UiNode => {
     const child = childBlock(program, prop);
     if (child && !child.scalar) {
       return rescopeUi(emitBlockUi(program, child), prop.name);
@@ -181,6 +238,9 @@ export function emitBlockUi(program: Program, block: Block): UiNode {
     };
     const label = propLabel(program, prop);
     if (label) node.label = label;
+
+    const detail = itemDetail(program, prop);
+    if (detail) node.options = { ...(node.options ?? {}), detail };
 
     const widget = propWidget(program, prop);
     if (widget) node.options = { ...(node.options ?? {}), widget };
@@ -217,7 +277,8 @@ export function emitBlockUi(program: Program, block: Block): UiNode {
     return node;
   };
 
-  const props = orderedProps(program, block);
+  const props =
+    block.model.kind === "Model" ? layoutProps(program, block.model) : [];
   const elements: UiNode[] = [];
   const documentedStaticSections = block.sections
     ? [...block.sections.members.values()].filter(
