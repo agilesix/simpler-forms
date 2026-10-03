@@ -29,6 +29,7 @@ export const $decorators = {
     omit: d.$omit,
     readOnly: d.$readOnly,
     visibleWhen: d.$visibleWhen,
+    hiddenWhen: d.$hiddenWhen,
     enabledWhen: d.$enabledWhen,
     disabledWhen: d.$disabledWhen,
     enabledWhenAny: d.$enabledWhenAny,

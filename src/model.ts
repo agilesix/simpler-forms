@@ -35,6 +35,11 @@ export interface EqualsCondition extends ConditionBase {
 export interface NotEqualsCondition extends ConditionBase {
   operator: "notEquals";
   value: string | number | boolean | null;
+  /**
+   * Hold only once the source is answered. An unanswered source is not a different value:
+   * "Province applies to a non-US country" does not apply before a country is chosen.
+   */
+  requiresAnswer?: boolean;
 }
 export interface InCondition extends ConditionBase {
   operator: "in";

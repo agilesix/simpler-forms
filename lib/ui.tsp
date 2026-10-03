@@ -44,6 +44,19 @@ extern dec visibleWhen(
   source: ModelProperty,
   equals: valueof unknown
 );
+/**
+ * Hide the field until the source is answered with a value other than `equals` -- so while the
+ * source equals it, and while the source is still unanswered.
+ *
+ * The negation of `visibleWhen`, for the reason `disabledWhen` negates `enabledWhen`: a rule
+ * stated against the complement of a value -- "Province applies unless Country is the US" --
+ * would otherwise have to list every other member of a code list.
+ */
+extern dec hiddenWhen(
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: valueof unknown
+);
 /** Keep the field visible but enable it only while the predicate holds. */
 extern dec enabledWhen(
   target: ModelProperty,

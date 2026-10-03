@@ -130,6 +130,28 @@ export const $visibleWhen = (
   equals: unknown,
 ) => push(ctx, stateKeys.visibleWhen, target, condition(source, equals));
 
+/**
+ * Hide the field until the source is answered with a value other than `equals`.
+ *
+ * Recorded as a negated `visibleWhen`, as `disabledWhen` is a negated `enabledWhen`, so every
+ * consumer that already reads visibility handles it unchanged. Unlike `disabledWhen`, the
+ * field also stays hidden while the source is unanswered: a field kept for the complement of a
+ * value -- Province, for a country other than the US -- has nothing to apply to until a value
+ * is chosen.
+ */
+export const $hiddenWhen = (
+  ctx: Ctx,
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: unknown,
+) =>
+  push(
+    ctx,
+    stateKeys.visibleWhen,
+    target,
+    negatedCondition(source, equals, { requiresAnswer: true }),
+  );
+
 export const $enabledWhen = (
   ctx: Ctx,
   target: ModelProperty,

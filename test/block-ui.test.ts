@@ -86,6 +86,46 @@ describe("emitBlockUi", () => {
     });
   });
 
+  describe("@UI.hiddenWhen", () => {
+    it("emits a SHOW rule that holds only once the source is answered with another value", async () => {
+      const ui = await formUi(
+        spec(`
+          ${formMeta("hidden")}
+          model Hidden {
+            country?: string;
+            @UI.hiddenWhen(Hidden.country, "USA")
+            province?: string;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[1]).toMatchObject({
+        scope: "#/properties/province",
+        rule: {
+          effect: "SHOW",
+          condition: {
+            scope: "#/properties/country",
+            failWhenUndefined: true,
+            schema: {
+              allOf: [
+                {
+                  not: {
+                    anyOf: [
+                      { type: "null" },
+                      { const: "" },
+                      { type: "array", maxItems: 0 },
+                    ],
+                  },
+                },
+                { not: { const: "USA" } },
+              ],
+            },
+          },
+        },
+      });
+    });
+  });
+
   describe("a question that extends another", () => {
     it("lays out the fields it inherits rather than an empty group", async () => {
       const ui = await formUi(

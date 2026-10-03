@@ -21,6 +21,13 @@ import {
 } from "../model.js";
 import { normalizedOverrideEnabledWhen } from "./override-condition.js";
 
+/** An answered value: not null, not blank, not an empty list. */
+const answeredSchema = {
+  not: {
+    anyOf: [{ type: "null" }, { const: "" }, { type: "array", maxItems: 0 }],
+  },
+};
+
 const conditionSchema = (
   condition: AtomicCondition,
 ): Record<string, unknown> =>
@@ -29,17 +36,11 @@ const conditionSchema = (
     : condition.operator === "countAtLeast"
       ? { type: "array", minItems: condition.minimum }
       : condition.operator === "present"
-        ? {
-            not: {
-              anyOf: [
-                { type: "null" },
-                { const: "" },
-                { type: "array", maxItems: 0 },
-              ],
-            },
-          }
+        ? answeredSchema
         : condition.operator === "notEquals"
-          ? { not: { const: condition.value } }
+          ? condition.requiresAnswer
+            ? { allOf: [answeredSchema, { not: { const: condition.value } }] }
+            : { not: { const: condition.value } }
           : { const: condition.value };
 
 /** A condition over the block root, used only for the bounded cross-field disjunction. */
@@ -62,6 +63,10 @@ const jsonFormsCondition = (condition: Condition): Record<string, unknown> =>
     : {
         scope: `#/${condition.sourcePath.map((step) => `properties/${step}`).join("/")}`,
         schema: conditionSchema(condition),
+        // JSON Forms passes a condition whose source is absent unless told otherwise.
+        ...(condition.operator === "notEquals" && condition.requiresAnswer
+          ? { failWhenUndefined: true }
+          : {}),
       };
 
 export interface UiNode {
