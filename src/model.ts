@@ -24,6 +24,23 @@ export interface EqualsCondition extends ConditionBase {
   operator: "equals";
   value: string | number | boolean | null;
 }
+/**
+ * The negation of `equals`, and the only negated operator.
+ *
+ * It exists because some source rules are stated against the complement of a value rather
+ * than the value -- "active unless the country is the US" -- and expressing those by
+ * enumerating every other member of a code list produces a condition no reviewer can check
+ * against the source sentence it came from.
+ */
+export interface NotEqualsCondition extends ConditionBase {
+  operator: "notEquals";
+  value: string | number | boolean | null;
+  /**
+   * Hold only once the source is answered. An unanswered source is not a different value:
+   * "Province applies to a non-US country" does not apply before a country is chosen.
+   */
+  requiresAnswer?: boolean;
+}
 export interface InCondition extends ConditionBase {
   operator: "in";
   values: (string | number | boolean | null)[];
@@ -36,7 +53,11 @@ export interface PresentCondition extends ConditionBase {
   operator: "present";
 }
 export type AtomicCondition =
-  EqualsCondition | InCondition | CountAtLeastCondition | PresentCondition;
+  | EqualsCondition
+  | NotEqualsCondition
+  | InCondition
+  | CountAtLeastCondition
+  | PresentCondition;
 
 const conditionSourceModels = new WeakMap<AtomicCondition, Model>();
 
@@ -269,6 +290,20 @@ export const modelLabel = (p: Program, model: Model) =>
 /** `@UI.order` for any model, block or not. */
 export const modelOrder = (p: Program, model: Model) =>
   g(p, stateKeys.order, model) as string[] | undefined;
+
+/**
+ * `@UI.overrides` for any model, block or not, keyed by dotted path relative to that model.
+ *
+ * A block's own table also reaches emitters through `Block.overrides`. This accessor exists
+ * for the other case: a form-local model composed by a form, whose overrides describe the
+ * thing being composed rather than one occurrence of it. A form asking for the same contact
+ * four times states such an override once, and an emitter rebases it onto each occurrence.
+ */
+export const modelOverrides = (p: Program, model: Model) =>
+  (g(p, stateKeys.overrides, model) as Record<
+    string,
+    Record<string, unknown>
+  >) ?? {};
 
 export const propOverrides = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.overrides, prop) as Record<

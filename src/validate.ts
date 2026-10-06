@@ -630,7 +630,7 @@ function checkConditions(program: Program, prop: ModelProperty): void {
     const values =
       condition.operator === "in"
         ? condition.values
-        : condition.operator === "equals"
+        : condition.operator === "equals" || condition.operator === "notEquals"
           ? [condition.value]
           : [];
     for (const value of values) {

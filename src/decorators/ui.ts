@@ -7,6 +7,7 @@ import {
   countCondition,
   enumName,
   literal,
+  negatedCondition,
   plain,
   push,
   set,
@@ -129,12 +130,49 @@ export const $visibleWhen = (
   equals: unknown,
 ) => push(ctx, stateKeys.visibleWhen, target, condition(source, equals));
 
+/**
+ * Hide the field until the source is answered with a value other than `equals`.
+ *
+ * Recorded as a negated `visibleWhen`, as `disabledWhen` is a negated `enabledWhen`, so every
+ * consumer that already reads visibility handles it unchanged. Unlike `disabledWhen`, the
+ * field also stays hidden while the source is unanswered: a field kept for the complement of a
+ * value -- Province, for a country other than the US -- has nothing to apply to until a value
+ * is chosen.
+ */
+export const $hiddenWhen = (
+  ctx: Ctx,
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: unknown,
+) =>
+  push(
+    ctx,
+    stateKeys.visibleWhen,
+    target,
+    negatedCondition(source, equals, { requiresAnswer: true }),
+  );
+
 export const $enabledWhen = (
   ctx: Ctx,
   target: ModelProperty,
   source: ModelProperty,
   equals: unknown,
 ) => push(ctx, stateKeys.enabledWhen, target, condition(source, equals));
+
+/**
+ * Disable the field while the predicate holds, and enable it otherwise.
+ *
+ * Recorded as a negated `enabledWhen` rather than as a state of its own, so every consumer
+ * that already reads enablement gets this for free and cannot disagree with it about which
+ * of the two states is the default. `@UI.disabledWhen(X.province, X.country, CountryCode.USA)`
+ * and a hypothetical `enabledWhen(country != USA)` are the same recorded condition.
+ */
+export const $disabledWhen = (
+  ctx: Ctx,
+  target: ModelProperty,
+  source: ModelProperty,
+  equals: unknown,
+) => push(ctx, stateKeys.enabledWhen, target, negatedCondition(source, equals));
 
 export const $enabledWhenAny = (
   ctx: Ctx,
