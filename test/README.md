@@ -4,11 +4,12 @@
 strings through `createTester` and assert on what this library produces. No test here
 reads a file from disk or depends on any particular corpus of forms.
 
-| File               | Lines | What it covers                                              |
-| ------------------ | ----: | ----------------------------------------------------------- |
-| `validate.test.ts` |   885 | Every `$onValidate` diagnostic                              |
-| `linter.test.ts`   |   410 | Every lint rule, via `createLinterRuleTester`               |
-| `tester.ts`        |    39 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()` |
+| File                      | Lines | What it covers                                              |
+| ------------------------- | ----: | ----------------------------------------------------------- |
+| `validate.test.ts`        |   885 | Every `$onValidate` diagnostic                              |
+| `linter.test.ts`          |   410 | Every lint rule, via `createLinterRuleTester`               |
+| `property-casing.test.ts` |   231 | The `property-casing` emitter option, end to end            |
+| `tester.ts`               |    39 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()` |
 
 ## Tests that were not brought over, and why
 

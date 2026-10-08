@@ -1,4 +1,24 @@
-import { createTypeSpecLibrary, paramMessage } from "@typespec/compiler";
+import {
+  createTypeSpecLibrary,
+  paramMessage,
+  type JSONSchemaType,
+} from "@typespec/compiler";
+import type { FormSpecOptions } from "./emitter.js";
+
+const EmitterOptionsSchema: JSONSchemaType<FormSpecOptions> = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    "base-uri": { type: "string", nullable: true },
+    "property-casing": {
+      type: "string",
+      enum: ["preserve", "snake"],
+      nullable: true,
+      default: "preserve",
+    },
+  },
+  required: [],
+};
 
 /**
  * Named diagnostics for everything that makes an artifact wrong, and state keys for
@@ -147,12 +167,21 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`@UI.overrides path "${"path"}" requests visibleReadOnly without readOnly. A visible read-only control must also be marked readOnly so schema and UI cannot disagree.`,
       },
     },
+    "property-casing-collision": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"model"}.${"first"} and ${"model"}.${"second"} would both be emitted as "${"name"}". Rename one, or give one an @encodedName("application/json", ...).`,
+      },
+    },
     "section-orphan": {
       severity: "error",
       messages: {
         default: paramMessage`${"name"} is in no section, so it renders nowhere. Give it a @UI.section, or @UI.omit it if that is deliberate.`,
       },
     },
+  },
+  emitter: {
+    options: EmitterOptionsSchema,
   },
   state: {
     questionMeta: {},

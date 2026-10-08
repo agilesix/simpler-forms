@@ -16,6 +16,11 @@ import { blockSchemaRef } from "./decorators/index.js";
 import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
 import { emitBlockUi } from "./emitters/block-ui.js";
 import { emitBlockIndex } from "./emitters/block-index.js";
+import {
+  Casing,
+  checkCasingCollisions,
+  type PropertyCasing,
+} from "./casing.js";
 
 export interface FormSpecOptions {
   /**
@@ -24,6 +29,13 @@ export interface FormSpecOptions {
    * its `@Meta.question.id`, not its URI.
    */
   "base-uri"?: string;
+  /**
+   * How a property's TypeSpec name is written in every artifact: `preserve` (the default)
+   * keeps it, `snake` converts `firstName` to `first_name`. String paths in decorators are
+   * still written in TypeSpec names, and `@encodedName("application/json", ...)` overrides
+   * the casing for one property.
+   */
+  "property-casing"?: PropertyCasing;
 }
 
 const STAGING = ".json-schema";
@@ -60,6 +72,9 @@ export async function $onEmit(
     byFile.set(name, doc);
     if (doc.$id) byId.set(doc.$id, doc);
   }
+  // The staged schemas are an intermediate in TypeSpec names, not an artifact, so they must
+  // not be left beside the published ones.
+  await program.host.rm(stagingDir, { recursive: true });
 
   const baseUri = context.options?.["base-uri"];
   const write = (rel: string, value: unknown) =>
@@ -67,6 +82,10 @@ export async function $onEmit(
       path: resolvePath(outDir, rel),
       content: JSON.stringify(value, null, 2) + "\n",
     });
+
+  const casingOption = context.options?.["property-casing"] ?? "preserve";
+  checkCasingCollisions(program, casingOption);
+  const casing = new Casing(program, casingOption);
 
   const blocks = allBlocks(program);
   const modelsByName = indexModels(program.getGlobalNamespaceType());
@@ -110,9 +129,19 @@ export async function $onEmit(
     const overlay = emitSchemaOverlay(program, block);
     if (overlay) schema = mergeSchema(schema, overlay);
 
-    await write(`${dir}/schema.json`, schema);
-    await write(`${dir}/ui.json`, emitBlockUi(program, block));
-    await write(`${dir}/index.json`, emitBlockIndex(program, block));
+    const index = emitBlockIndex(program, block);
+    if (Array.isArray(index.fieldOccurrences) && block.model.kind === "Model")
+      index.fieldOccurrences = casing.occurrences(
+        index.fieldOccurrences,
+        block.model,
+      );
+
+    await write(`${dir}/schema.json`, casing.schema(schema, block.model));
+    await write(
+      `${dir}/ui.json`,
+      casing.ui(emitBlockUi(program, block), block.model),
+    );
+    await write(`${dir}/index.json`, index);
 
     if (block.kind === "form") {
       await write(`${dir}/manifest.json`, {

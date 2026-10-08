@@ -64,6 +64,28 @@ attaches a provenance attestation to the version it accepts. The trusted publish
 configured against `.github/workflows/release.yml` by path, so renaming or moving that file
 stops publication until the publisher is updated to match.
 
+## Options
+
+Set in `tspconfig.yaml` under `options: simpler-forms:`.
+
+| Option            | Default    | Effect                                                        |
+| ----------------- | ---------- | ------------------------------------------------------------- |
+| `base-uri`        | none       | Makes every `$id` and cross-block `$ref` absolute.            |
+| `property-casing` | `preserve` | `snake` writes `firstName` as `first_name` in every artifact. |
+
+`property-casing` applies to `schema.json` property keys, `required` and conditional rules,
+`ui.json` Control and rule scopes, `index.json` field occurrence paths, and `@example`
+values. Specifications are still written in TypeSpec names, including string paths such as
+`@Validation.requiredPaths("primaryContact.name.firstName")` and `@UI.overrides` keys, and a
+path that does not resolve is reported in the name the author wrote.
+
+The `snake` rule starts a word at each capital that follows a lowercase letter or a digit,
+and treats a run of capitals as one word, so `ombNumber` and `OMBNumber` both become
+`omb_number`. Digits stay with the word before them: `street1` is unchanged and
+`sf424Version` becomes `sf424_version`. For a name the rule converts badly, use
+`@encodedName("application/json", "...")` on that property; it overrides the casing. Two
+properties of one model that would be emitted under the same name are an error.
+
 ## Layout
 
 ```
@@ -80,6 +102,7 @@ src/            the library implementation
   validate.ts     $onValidate — cross-cutting checks reported as diagnostics
   linter.ts       lint rules
   emitter.ts      $onEmit — writes the canonical artifacts
+  casing.ts       property-casing — renames properties in finished artifacts
   emitters/       one module per emitted artifact
   lib.ts          createTypeSpecLibrary — diagnostics, lint rules, emitter options
 test/           vitest suites, driven by the compiler's createTester
