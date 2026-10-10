@@ -126,6 +126,86 @@ describe("emitBlockUi", () => {
     });
   });
 
+  describe("@UI.widget", () => {
+    const widgets = `
+      @UI.widgets(Widget)
+      namespace Rendering {
+        enum Widget { Text, Collapsible, Attachment: "ApplicationAttachment" }
+      }
+    `;
+
+    it("names the widget on a field's control", async () => {
+      const ui = await formUi(
+        spec(`
+          ${widgets}
+          ${formMeta("widget-field")}
+          model WidgetField {
+            @UI.widget(Rendering.Widget.Text)
+            note?: string;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]?.options?.widget).toEqual("Text");
+    });
+
+    it("names a widget by its string value when it has one", async () => {
+      const ui = await formUi(
+        spec(`
+          ${widgets}
+          ${formMeta("widget-value")}
+          model WidgetValue {
+            @UI.widget(Rendering.Widget.Attachment)
+            upload?: string;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]?.options?.widget).toEqual(
+        "ApplicationAttachment",
+      );
+    });
+
+    it("names the widget on the group a question with fields lays out as", async () => {
+      const ui = await formUi(
+        spec(`
+          ${widgets}
+          ${formMeta("widget-group")}
+          model WidgetGroup {
+            @UI.widget(Rendering.Widget.Collapsible)
+            contact?: QuestionContact;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]).toMatchObject({
+        type: "Group",
+        options: { widget: "Collapsible" },
+      });
+      expect(scopes(ui.elements?.[0])).toEqual([
+        "#/properties/contact/properties/name",
+        "#/properties/contact/properties/email",
+      ]);
+    });
+
+    it("names the widget on a list's control beside its entry layout", async () => {
+      const ui = await formUi(
+        spec(`
+          ${widgets}
+          ${formMeta("widget-list")}
+          model WidgetList {
+            @UI.widget(Rendering.Widget.Collapsible)
+            contacts?: QuestionContact[];
+          }
+        `),
+      );
+
+      const list = ui.elements?.[0];
+      expect(list?.options?.widget).toEqual("Collapsible");
+      expect(list?.options?.detail).toBeDefined();
+    });
+  });
+
   describe("a question that extends another", () => {
     it("lays out the fields it inherits rather than an empty group", async () => {
       const ui = await formUi(
