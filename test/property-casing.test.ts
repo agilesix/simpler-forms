@@ -210,6 +210,27 @@ describe("snake property casing", () => {
       code: "simpler-forms/property-casing-collision",
     });
   });
+  it("rejects one name emitted two ways", async () => {
+    const diagnostics = await EmitTester.emit("simpler-forms", {
+      "property-casing": "snake",
+    }).diagnose(`
+      import "simpler-forms";
+      import "@typespec/json-schema";
+      using SimplerForms;
+      @JsonSchema.jsonSchema
+      namespace Forms {
+        model Employer {
+          @encodedName("application/json", "ein")
+          employerIdNumber?: string;
+        }
+        ${formMeta("inconsistent")}
+        model Inconsistent { employer?: Employer; employerIdNumber?: string; }
+      }
+    `);
+    expectDiagnostics(diagnostics, {
+      code: "simpler-forms/property-casing-inconsistent",
+    });
+  });
 });
 
 describe("string paths under snake casing", () => {

@@ -16,11 +16,7 @@ import { blockSchemaRef } from "./decorators/index.js";
 import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
 import { emitBlockUi } from "./emitters/block-ui.js";
 import { emitBlockIndex } from "./emitters/block-index.js";
-import {
-  Casing,
-  checkCasingCollisions,
-  type PropertyCasing,
-} from "./casing.js";
+import { Casing, type PropertyCasing } from "./casing.js";
 
 export interface FormSpecOptions {
   /**
@@ -83,9 +79,10 @@ export async function $onEmit(
       content: JSON.stringify(value, null, 2) + "\n",
     });
 
-  const casingOption = context.options?.["property-casing"] ?? "preserve";
-  checkCasingCollisions(program, casingOption);
-  const casing = new Casing(program, casingOption);
+  const casing = new Casing(
+    program,
+    context.options?.["property-casing"] ?? "preserve",
+  );
 
   const blocks = allBlocks(program);
   const modelsByName = indexModels(program.getGlobalNamespaceType());
@@ -130,17 +127,13 @@ export async function $onEmit(
     if (overlay) schema = mergeSchema(schema, overlay);
 
     const index = emitBlockIndex(program, block);
-    if (Array.isArray(index.fieldOccurrences) && block.model.kind === "Model")
-      index.fieldOccurrences = casing.occurrences(
-        index.fieldOccurrences,
-        block.model,
-      );
+    if (Array.isArray(index.fieldOccurrences))
+      index.fieldOccurrences = index.fieldOccurrences
+        .map((entry) => ({ ...entry, path: casing.pointer(entry.path) }))
+        .sort((a, b) => a.path.localeCompare(b.path));
 
-    await write(`${dir}/schema.json`, casing.schema(schema, block.model));
-    await write(
-      `${dir}/ui.json`,
-      casing.ui(emitBlockUi(program, block), block.model),
-    );
+    await write(`${dir}/schema.json`, casing.json(schema));
+    await write(`${dir}/ui.json`, casing.json(emitBlockUi(program, block)));
     await write(`${dir}/index.json`, index);
 
     if (block.kind === "form") {

@@ -173,6 +173,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"model"}.${"first"} and ${"model"}.${"second"} would both be emitted as "${"name"}". Rename one, or give one an @encodedName("application/json", ...).`,
       },
     },
+    "property-casing-inconsistent": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"property"} would be emitted as "${"name"}", but ${"other"} as "${"otherName"}". A property name is emitted the same way everywhere, so give both the same @encodedName.`,
+      },
+    },
     "section-orphan": {
       severity: "error",
       messages: {

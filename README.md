@@ -83,8 +83,10 @@ The `snake` rule starts a word at each capital that follows a lowercase letter o
 and treats a run of capitals as one word, so `ombNumber` and `OMBNumber` both become
 `omb_number`. Digits stay with the word before them: `street1` is unchanged and
 `sf424Version` becomes `sf424_version`. For a name the rule converts badly, use
-`@encodedName("application/json", "...")` on that property; it overrides the casing. Two
-properties of one model that would be emitted under the same name are an error.
+`@encodedName("application/json", "...")` on that property; it overrides the casing. A
+property name is emitted the same way everywhere it is declared, so every declaration of
+that name needs the same `@encodedName`. Two properties of one model that would be emitted
+under the same name are an error, and so is one name emitted two ways.
 
 ## Layout
 
