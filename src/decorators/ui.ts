@@ -1,11 +1,17 @@
-import type { Enum, Model, ModelProperty, Scalar } from "@typespec/compiler";
+import type {
+  Enum,
+  EnumMember,
+  Model,
+  ModelProperty,
+  Namespace,
+  Scalar,
+} from "@typespec/compiler";
 import { $summary } from "@typespec/compiler";
 import { stateKeys } from "../lib.js";
 import {
   type Ctx,
   condition,
   countCondition,
-  enumName,
   literal,
   negatedCondition,
   plain,
@@ -95,8 +101,26 @@ export const $label = (
 export const $helpText = (ctx: Ctx, target: ModelProperty, text: string) =>
   set(ctx, stateKeys.helpText, target, text);
 
-export const $widget = (ctx: Ctx, target: ModelProperty, widget: unknown) =>
-  set(ctx, stateKeys.widget, target, enumName(widget));
+export const $widgets = (ctx: Ctx, target: Namespace, widgets: Enum) =>
+  set(ctx, stateKeys.widgets, target, widgets);
+
+/**
+ * Records the emitted name now and the member itself for `$onValidate`, which checks it
+ * against the declared sets once every `@UI.widgets` has run.
+ */
+export const $widget = (
+  ctx: Ctx,
+  target: ModelProperty,
+  widget: EnumMember,
+) => {
+  set(
+    ctx,
+    stateKeys.widget,
+    target,
+    typeof widget.value === "string" ? widget.value : widget.name,
+  );
+  set(ctx, stateKeys.widgetMember, target, widget);
+};
 
 export const $encodedCheckboxGroup = (
   ctx: Ctx,

@@ -23,6 +23,7 @@ export const $decorators = {
     overrides: d.$overrides,
     label: d.$label,
     helpText: d.$helpText,
+    widgets: d.$widgets,
     widget: d.$widget,
     encodedCheckboxGroup: d.$encodedCheckboxGroup,
     order: d.$order,

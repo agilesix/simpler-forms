@@ -234,7 +234,11 @@ export function emitBlockUi(program: Program, block: LayoutSource): UiNode {
   const nodeForProperty = (prop: ModelProperty): UiNode => {
     const child = childBlock(program, prop);
     if (child && !child.scalar) {
-      return rescopeUi(emitBlockUi(program, child), prop.name);
+      const group = rescopeUi(emitBlockUi(program, child), prop.name);
+      const widget = propWidget(program, prop);
+      return widget
+        ? { ...group, options: { ...(group.options ?? {}), widget } }
+        : group;
     }
 
     const node: UiNode = {
