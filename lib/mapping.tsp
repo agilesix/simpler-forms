@@ -7,7 +7,7 @@ using TypeSpec.Reflection;
 
 /**
  * Correspondences between a form's models and the models of some other representation of
- * the same response -- an XSD mirror, a CSV layout, another JSON shape.
+ * the same response -- an XSD modeled in TypeSpec, a CSV layout, another JSON shape.
  *
  * Nothing here is specific to any one representation. Each link names the mapping it
  * belongs to, so one form can carry several side by side, and the program's own emitters

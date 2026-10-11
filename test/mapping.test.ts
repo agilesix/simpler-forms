@@ -8,7 +8,7 @@ import { type MappingNode, resolveMapping } from "../src/mapping.js";
 import { Tester, formMeta } from "./tester.js";
 
 /**
- * Two mappings, and a target shape for each: `Wire` mirrors an XML document, `Flat` a CSV
+ * Two mappings, and a target shape for each: `Wire` models an XML document, `Flat` a CSV
  * row. A fixture adds the sources and their links.
  */
 const spec = (body: string, { declare = true } = {}) => `

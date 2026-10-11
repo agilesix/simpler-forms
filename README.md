@@ -160,9 +160,9 @@ group those fields lay out as.
 
 **Mappings link a form to its other representations.** A response often has to be written
 in another shape too: an XML document, a CSV row. `@Mapping.to` links a model or property to
-a model or property that mirrors that shape, and the wire details (element names,
-namespaces, column headers) stay on the mirror, in whatever vocabulary its representation
-uses. Which mappings exist is the program's to declare, with `@Mapping.targets`, the way
+its counterpart in a TypeSpec model of that shape, the mapping target. The wire details
+(element names, namespaces, column headers) stay on the target, in whatever vocabulary its
+representation uses. Which mappings exist is the program's to declare, with `@Mapping.targets`, the way
 `@UI.widgets` declares widgets; each link names one, so a form carries several side by side:
 
 ```tsp
