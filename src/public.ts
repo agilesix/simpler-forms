@@ -94,6 +94,26 @@ export {
   cardinalityPositiveDecimalStringWhenPathPresent,
 } from "./model.js";
 
+// --- mapping --------------------------------------------------------------
+// A mapping emitter takes the members it emits as an option, checks them against
+// `mappingTargets`, and resolves each form it emits once per member.
+export {
+  /** Every member of every enum declared with `@Mapping.targets`. */
+  mappingTargets,
+  modelMappedTo,
+  propMappedTo,
+  modelMappingPaths,
+  type MappingLink,
+  type MappingPathLink,
+} from "./model.js";
+export {
+  /** A model's mapping in one target, resolved through every model it composes. */
+  resolveMapping,
+  type ResolvedMapping,
+  type MappingNode,
+  type MappingNodeKind,
+} from "./mapping.js";
+
 // --- property casing ------------------------------------------------------
 // A target emitter writing its own artifacts uses these to name properties as this one does.
 export {

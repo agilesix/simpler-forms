@@ -96,11 +96,13 @@ lib/            TypeSpec declarations — the decorator vocabulary
   meta.tsp        @Meta.*   — question, form, tag, role
   ui.tsp          @UI.*     — labels, sections, widgets, overrides
   validation.tsp  @Validation.*
+  mapping.tsp     @Mapping.* — links to other representations of a response
   types.tsp       shared scalars and enums
 src/            the library implementation
   public.ts       the API a target emitter reads — the only semver-governed surface
   decorators/     decorator entry points, one module per namespace
   model.ts        typed accessors over decorator state
+  mapping.ts      resolveMapping — a form's links in one mapping, through what it composes
   validate.ts     $onValidate — cross-cutting checks reported as diagnostics
   linter.ts       lint rules
   emitter.ts      $onEmit — writes the canonical artifacts
@@ -155,6 +157,35 @@ model Contacts {
 
 On a property whose type is a question with fields of its own, the widget is emitted on the
 group those fields lay out as.
+
+**Mappings link a form to its other representations.** A response often has to be written
+in another shape too: an XML document, a CSV row. `@Mapping.to` links a model or property to
+a model or property that mirrors that shape, and the wire details (element names,
+namespaces, column headers) stay on the mirror, in whatever vocabulary its representation
+uses. Which mappings exist is the program's to declare, with `@Mapping.targets`, the way
+`@UI.widgets` declares widgets; each link names one, so a form carries several side by side:
+
+```tsp
+@Mapping.targets(Target)
+namespace Mappings {
+  enum Target { grantsGovXml, csv }
+}
+
+@Mapping.to(Mappings.Target.grantsGovXml, Xsd.HumanName)
+model PersonName {
+  @Mapping.to(Mappings.Target.grantsGovXml, Xsd.HumanName.firstName)
+  @Mapping.to(Mappings.Target.csv, Csv.Row.contactFirstName)
+  firstName: string;
+}
+```
+
+A question links once, at the level its mapping is shared, and every form that composes it
+gets those links. A composing model whose target differs adds or overrides links for nested
+paths with `@Mapping.path`; an object with no link of its own whose descendants are linked
+that way is flattened into its parent. A mapping emitter takes the members it emits as an
+option, checks them against `mappingTargets`, and calls `resolveMapping` once per form per
+member. Every link is checked as it resolves: against the model its parent maps to, against
+the target's type and cardinality, and against other sources landing on the same target.
 
 ## License
 

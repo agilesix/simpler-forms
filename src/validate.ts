@@ -1,5 +1,6 @@
 import type {
   Enum,
+  EnumMember,
   Model,
   ModelProperty,
   Namespace,
@@ -37,7 +38,11 @@ import {
   scalarType,
   declaredWidgetSets,
   widgetMembers,
+  allMappingLinks,
+  allMappingPathLinks,
+  declaredMappingSets,
 } from "./model.js";
+import { resolveMappingWithProblems } from "./mapping.js";
 
 /**
  * Whole-program checks whose failure means the emitted artifacts would be wrong.
@@ -66,6 +71,7 @@ export function $onValidate(program: Program): void {
   }
 
   checkWidgets(program);
+  checkMappings(program);
   checkDateOrders(program);
   checkCardinalityPaths(program);
   checkCalculationCycles(program, blocks);
@@ -305,6 +311,79 @@ function checkWidgets(program: Program): void {
         enumName: member.enum.name,
       },
     });
+  }
+}
+
+/**
+ * A mapping is a contract with one of the program's emitters, declared with
+ * `@Mapping.targets` as a widget is with `@UI.widgets`. Each model linked in a mapping is
+ * resolved through everything it composes, and every link that does not hold there is
+ * reported once, however many forms compose the model it is declared on.
+ */
+function checkMappings(program: Program): void {
+  const declared = declaredMappingSets(program);
+  const links = allMappingLinks(program);
+  const undeclared = (target: Model | ModelProperty, mapping: EnumMember) => {
+    if (declared.has(mapping.enum)) return;
+    reportDiagnostic(program, {
+      code: "mapping-target-undeclared",
+      target,
+      format: {
+        name: target.name || "an anonymous model",
+        mapping: mapping.name,
+        enumName: mapping.enum.name,
+      },
+    });
+  };
+  for (const [model, paths] of allMappingPathLinks(program))
+    for (const { mapping } of paths) undeclared(model, mapping);
+
+  const roots: [Model, EnumMember][] = [];
+  for (const [target, list] of links) {
+    const seen = new Set<EnumMember>();
+    for (const { mapping, mappedTo } of list) {
+      undeclared(target, mapping);
+      if (seen.has(mapping)) {
+        reportDiagnostic(program, {
+          code: "mapping-duplicate",
+          target,
+          format: {
+            name: target.name || "an anonymous model",
+            mapping: mapping.name,
+          },
+        });
+        continue;
+      }
+      seen.add(mapping);
+      if (mappedTo.kind !== target.kind) {
+        reportDiagnostic(program, {
+          code: "mapping-type-mismatch",
+          target,
+          format: {
+            mapping: mapping.name,
+            source: target.name || "an anonymous model",
+            target: mappedTo.name || "an anonymous model",
+            reason:
+              target.kind === "Model"
+                ? "a model corresponds to a model, not a property"
+                : "a property corresponds to a property, not a model",
+          },
+        });
+        continue;
+      }
+      if (target.kind === "Model") roots.push([target, mapping]);
+    }
+  }
+
+  const reported = new Set<string>();
+  for (const [model, mapping] of roots) {
+    for (const problem of resolveMappingWithProblems(program, model, mapping)
+      ?.problems ?? []) {
+      const key = JSON.stringify([problem.code, problem.format]);
+      if (reported.has(key)) continue;
+      reported.add(key);
+      reportDiagnostic(program, problem);
+    }
   }
 }
 

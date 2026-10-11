@@ -213,6 +213,64 @@ export const propRequiredWhen = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.requiredWhen, prop) as Condition[]) ?? [];
 export const propNotBefore = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.notBefore, prop) as ModelProperty | undefined;
+
+// --- mapping ----------------------------------------------------------------
+
+/** One `@Mapping.to`: in `mapping`, the decorated type corresponds to `mappedTo`. */
+export interface MappingLink {
+  mapping: EnumMember;
+  mappedTo: Model | ModelProperty;
+}
+
+/** One `@Mapping.path`: in `mapping`, the dotted source path corresponds to `mappedTo`. */
+export interface MappingPathLink {
+  mapping: EnumMember;
+  sourcePath: string;
+  mappedTo: ModelProperty;
+}
+
+/** Every enum a namespace declares with `@Mapping.targets`: the mappings the program produces. */
+export const declaredMappingSets = (p: Program) =>
+  new Set(p.stateMap(stateKeys.mappingTargets).values() as Iterable<Enum>);
+
+/** Every member of a declared mapping set, in declaration order. */
+export const mappingTargets = (p: Program): EnumMember[] =>
+  [...declaredMappingSets(p)].flatMap((e) => [...e.members.values()]);
+
+/** Every `@Mapping.to` on each model and property, in every mapping. */
+export const allMappingLinks = (p: Program) =>
+  p.stateMap(stateKeys.mappedTo) as Map<Model | ModelProperty, MappingLink[]>;
+
+/** Every `@Mapping.path` on each model, in every mapping. */
+export const allMappingPathLinks = (p: Program) =>
+  p.stateMap(stateKeys.mappingPaths) as Map<Model, MappingPathLink[]>;
+
+/** The model a model corresponds to in `mapping`; the first, if it is linked twice. */
+export const modelMappedTo = (p: Program, model: Model, mapping: EnumMember) =>
+  ((g(p, stateKeys.mappedTo, model) as MappingLink[] | undefined) ?? []).find(
+    (link) => link.mapping === mapping && link.mappedTo.kind === "Model",
+  )?.mappedTo as Model | undefined;
+
+/** The property a property corresponds to in `mapping`; the first, if it is linked twice. */
+export const propMappedTo = (
+  p: Program,
+  prop: ModelProperty,
+  mapping: EnumMember,
+) =>
+  ((g(p, stateKeys.mappedTo, prop) as MappingLink[] | undefined) ?? []).find(
+    (link) =>
+      link.mapping === mapping && link.mappedTo.kind === "ModelProperty",
+  )?.mappedTo as ModelProperty | undefined;
+
+/** A model's `@Mapping.path` links in `mapping`. */
+export const modelMappingPaths = (
+  p: Program,
+  model: Model,
+  mapping: EnumMember,
+) =>
+  (
+    (g(p, stateKeys.mappingPaths, model) as MappingPathLink[] | undefined) ?? []
+  ).filter((link) => link.mapping === mapping);
 export const propValidationConstraints = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.validationConstraints, prop) as
     Record<string, unknown> | undefined) ?? {};

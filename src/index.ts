@@ -59,4 +59,9 @@ export const $decorators = {
     evaluationOrder: d.$evaluationOrder,
     totals: d.$totals,
   },
+  "SimplerForms.Mapping": {
+    targets: d.$targets,
+    to: d.$to,
+    path: d.$path,
+  },
 };

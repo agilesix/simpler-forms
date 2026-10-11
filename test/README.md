@@ -8,6 +8,7 @@ reads a file from disk or depends on any particular corpus of forms.
 | ------------------------- | ----: | ----------------------------------------------------------- |
 | `validate.test.ts`        |   885 | Every `$onValidate` diagnostic                              |
 | `linter.test.ts`          |   410 | Every lint rule, via `createLinterRuleTester`               |
+| `mapping.test.ts`         |   375 | `resolveMapping`, and every `@Mapping.*` diagnostic         |
 | `property-casing.test.ts` |   231 | The `property-casing` emitter option, end to end            |
 | `tester.ts`               |    39 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()` |
 
