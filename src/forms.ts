@@ -63,7 +63,7 @@ export function resolveForms(program: Program): {
     const form: PublishedForm = {
       id,
       model,
-      meta: { ...meta, id },
+      meta: { id, ...meta },
       submission,
       ...(presented ? { layout: model } : {}),
     };

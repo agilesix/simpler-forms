@@ -24,6 +24,20 @@ export {
   type Block,
 } from "./model.js";
 
+// --- forms ----------------------------------------------------------------
+// Each `@Meta.form` is published as `forms/<id>/`, so a target emitter writing a form's
+// artifacts beside the others writes them once per form, not once per submission.
+export {
+  /** Every publishable `@Meta.form`, with the submission it presents. */
+  resolveForms,
+  type PublishedForm,
+} from "./forms.js";
+export {
+  type FormMeta,
+  /** Every `@UI.layout` model, with the model it presents. */
+  allLayouts,
+} from "./model.js";
+
 // --- conditions -----------------------------------------------------------
 export {
   /** The model a `countAtLeast` condition's source property belongs to. */
