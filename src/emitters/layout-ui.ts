@@ -162,7 +162,12 @@ function build(
     return nodeUi(flat).map((ui) => {
       if (ui.type === "Group" && ui.label) return ui;
       if (ui.type === "Group") return { ...ui, label: node.entry.name };
+      // The section carries the control's rule and description: they are about the section.
       const { rule, ...control } = ui;
+      const { description, ...options } = control.options ?? {};
+      if (control.options)
+        if (Object.keys(options).length) control.options = options;
+        else delete control.options;
       const label =
         propLabel(program, node.entry) ??
         (node.kind === "field"
@@ -173,6 +178,7 @@ function build(
         label,
         elements: [control],
         ...(rule ? { rule } : {}),
+        ...(description ? { options: { description } } : {}),
       };
     });
   };

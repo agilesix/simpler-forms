@@ -298,6 +298,22 @@ describe("@UI.layout", () => {
       );
     });
 
+    it("gives a section that wraps a list the list's description", async () => {
+      const layout = await ui(`
+        ${form()}
+        @UI.layout(Contacts)
+        model ContactsLayout {
+          payee: { payee: Contacts.payee; manager: Contacts.manager; };
+          /** Enter each contact. */
+          @UI.field(Contacts.contacts)
+          contacts: { name: Contact.name; };
+        }
+      `);
+      const section = layout.elements[1];
+      expect(section.options).toEqual({ description: "Enter each contact." });
+      expect(section.elements[0].options.description).toBeUndefined();
+    });
+
     it("places a field's children without their group with @UI.flatten", async () => {
       const layout = await ui(`
         ${form()}
