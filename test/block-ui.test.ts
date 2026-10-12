@@ -206,6 +206,40 @@ describe("emitBlockUi", () => {
     });
   });
 
+  describe("a composed question", () => {
+    it("takes the property's label and doc comment, so each role is told apart (#7)", async () => {
+      const ui = await formUi(
+        spec(`
+          ${formMeta("roles")}
+          model Roles {
+            /** Individual authorized to accept payments. */
+            @UI.label("Payee")
+            payee?: QuestionContact;
+
+            manager?: QuestionContact;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]).toMatchObject({
+        type: "Group",
+        label: "Payee",
+        options: { description: "Individual authorized to accept payments." },
+      });
+      // Without a label of its own, the property's group keeps the question's.
+      expect(ui.elements?.[1]?.label).toEqual("A person to contact.");
+      expect(ui.elements?.[1]?.options).toBeUndefined();
+    });
+
+    it("keeps its own label when laid out standalone", async () => {
+      const { program } = await Tester.compile(spec(""));
+      const question = allBlocks(program).find((b) => b.id === "poc/contact")!;
+      expect(emitBlockUi(program, question).label).toEqual(
+        "A person to contact.",
+      );
+    });
+  });
+
   describe("a question that extends another", () => {
     it("lays out the fields it inherits rather than an empty group", async () => {
       const ui = await formUi(

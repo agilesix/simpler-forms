@@ -11,11 +11,13 @@ import {
   getId,
 } from "@typespec/json-schema";
 import { allBlocks, type Block } from "./model.js";
-import { resolveForms } from "./forms.js";
+import { type PublishedForm, resolveForms } from "./forms.js";
 import { reportDiagnostic } from "./lib.js";
 import { blockSchemaRef } from "./decorators/index.js";
 import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
 import { emitBlockUi } from "./emitters/block-ui.js";
+import { emitLayoutUi } from "./emitters/layout-ui.js";
+import { resolveLayout } from "./layout.js";
 import { emitBlockIndex } from "./emitters/block-index.js";
 import { Casing, type PropertyCasing } from "./casing.js";
 
@@ -96,6 +98,11 @@ export async function $onEmit(
   );
 
   for (const block of blocks) {
+    // A submission is published once for each form presenting it, and not at all without one.
+    const published = forms.filter(
+      (form) => form.submission.model === block.model,
+    );
+    if (block.kind === "submission" && !published.length) continue;
     const dir = refToDir.get(blockSchemaRef(block.id))!;
     const stock = byId.get(resolvedSchemaId(program, block));
     if (!stock) {
@@ -134,15 +141,23 @@ export async function $onEmit(
         .map((entry) => ({ ...entry, path: casing.pointer(entry.path) }))
         .sort((a, b) => a.path.localeCompare(b.path));
 
-    await write(`${dir}/schema.json`, casing.json(schema));
-    await write(`${dir}/ui.json`, casing.json(emitBlockUi(program, block)));
-    await write(`${dir}/index.json`, index);
+    if (block.kind === "question") {
+      await write(`${dir}/schema.json`, casing.json(schema));
+      await write(`${dir}/ui.json`, casing.json(emitBlockUi(program, block)));
+      await write(`${dir}/index.json`, index);
+      continue;
+    }
 
-    if (block.kind === "submission") {
-      const form = forms.find((f) => f.model === block.model);
-      await write(`${dir}/manifest.json`, {
+    // A form's title is its own, in its manifest; the submission's schema carries none.
+    const { title: _title, ...submissionSchema } = schema;
+    for (const form of published) {
+      const formDir = `forms/${form.id}`;
+      await write(`${formDir}/schema.json`, casing.json(submissionSchema));
+      await write(`${formDir}/ui.json`, casing.json(formUi(program, form)));
+      await write(`${formDir}/index.json`, { ...index, id: form.id });
+      await write(`${formDir}/manifest.json`, {
         contract: "resolved-form-package/v1",
-        ...(form ? { form: form.meta } : {}),
+        form: form.meta,
         submission: block.meta,
         artifacts: {
           "schema.json": "generated",
@@ -152,6 +167,16 @@ export async function $onEmit(
       });
     }
   }
+}
+
+/** A form's UI: its layout's, or its submission's own presentation. */
+function formUi(program: Program, form: PublishedForm) {
+  return form.layout
+    ? emitLayoutUi(
+        program,
+        resolveLayout(program, form.layout, form.submission.model as Model),
+      ).ui
+    : emitBlockUi(program, form.submission);
 }
 
 /**

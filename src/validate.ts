@@ -41,11 +41,14 @@ import {
   allMappingLinks,
   allMappingPathLinks,
   declaredMappingSets,
+  allLayouts,
   allMappingFromLinks,
 } from "./model.js";
 import { resolveMappingWithProblems } from "./mapping.js";
 import { resolveMappingFrom } from "./mapping-from.js";
 import { resolveForms } from "./forms.js";
+import { resolveLayout } from "./layout.js";
+import { emitLayoutUi } from "./emitters/layout-ui.js";
 
 /**
  * Whole-program checks whose failure means the emitted artifacts would be wrong.
@@ -63,6 +66,7 @@ export function $onValidate(program: Program): void {
   checkQuestionIds(program, blocks);
   checkDuplicateIds(program, blocks);
   program.reportDiagnostics(resolveForms(program).problems);
+  checkLayouts(program);
 
   for (const block of blocks) {
     if (block.model.kind !== "Model") continue;
@@ -628,6 +632,21 @@ function checkComputedPaths(program: Program, blocks: Block[]): void {
         }
       }
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// layouts
+
+/**
+ * Every layout is resolved and laid out here, published or not, so a preview-only layout
+ * is checked as strictly as a form's.
+ */
+function checkLayouts(program: Program): void {
+  for (const [layout, presented] of allLayouts(program)) {
+    const resolved = resolveLayout(program, layout, presented);
+    program.reportDiagnostics(resolved.diagnostics);
+    program.reportDiagnostics(emitLayoutUi(program, resolved).diagnostics);
   }
 }
 

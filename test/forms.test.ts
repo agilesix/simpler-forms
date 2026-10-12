@@ -126,4 +126,27 @@ describe("@Meta.submission and @Meta.form", () => {
     });
     expect(json("forms/contact-form/index.json").kind).toEqual("form");
   });
+
+  it("publishes no package for a submission with no form", async () => {
+    const { paths } = await emit(
+      emitted(`
+        @Meta.submission(#{ id: "contact-form", shortFormName: "C", formVersion: "1.0" })
+        model ContactForm { name?: string; }
+      `),
+    );
+    expect(paths.filter((p) => p.startsWith("forms/"))).toEqual([]);
+  });
+
+  it("leaves the form's label out of the submission's schema", async () => {
+    const { json } = await emit(
+      emitted(`
+        ${formMeta("contact-form")}
+        @UI.label("CONTACT FORM")
+        model ContactForm { @UI.label("Name") name?: string; }
+      `),
+    );
+    const schema = json("forms/contact-form/schema.json");
+    expect(schema.title).toBeUndefined();
+    expect(schema.properties.name.title).toEqual("Name");
+  });
 });

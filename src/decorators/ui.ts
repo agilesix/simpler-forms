@@ -78,6 +78,25 @@ export const $overrides = (
   patch: unknown,
 ) => set(ctx, stateKeys.overrides, target, overridePlain(plain(ctx, patch)));
 
+// --- layouts --------------------------------------------------------------
+
+export const $layout = (ctx: Ctx, target: Model, form: Model) =>
+  set(ctx, stateKeys.layout, target, form);
+
+/**
+ * Records the argument's syntax as well as the property it resolves to. A reference to a
+ * nested occurrence (`Form.payee::type.address`) resolves to the declaration, so the
+ * syntax is the only place the occurrence's path survives.
+ */
+export const $field = (ctx: Ctx, target: ModelProperty, field: ModelProperty) =>
+  set(ctx, stateKeys.layoutField, target, {
+    field,
+    node: ctx.getArgumentTarget(0),
+  });
+
+export const $flatten = (ctx: Ctx, target: ModelProperty) =>
+  set(ctx, stateKeys.flatten, target, true);
+
 // --- presentation ---------------------------------------------------------
 
 /**

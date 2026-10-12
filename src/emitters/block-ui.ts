@@ -54,7 +54,9 @@ const rootConditionSchema = (
   return schema;
 };
 
-const jsonFormsCondition = (condition: Condition): Record<string, unknown> =>
+export const jsonFormsCondition = (
+  condition: Condition,
+): Record<string, unknown> =>
   condition.operator === "any"
     ? {
         scope: "#",
@@ -193,7 +195,7 @@ type LayoutSource = Pick<
 >;
 
 /** A model laid out as a block would be, whether or not it is one. */
-const layoutSource = (program: Program, model: Model): LayoutSource =>
+export const layoutSource = (program: Program, model: Model): LayoutSource =>
   readBlock(program, model) ?? {
     model,
     scalar: false,
@@ -220,6 +222,76 @@ function itemDetail(program: Program, prop: ModelProperty): UiNode | undefined {
 }
 
 /**
+ * One property as its model lays it out, scoped to that model: a Group of a composed
+ * question's fields, or a Control.
+ *
+ * A composed question's Group takes the property's label before the question's, and the
+ * property's doc comment as its description, so a question asked in several roles is told
+ * apart by role.
+ */
+export function propertyUi(program: Program, prop: ModelProperty): UiNode {
+  const child = childBlock(program, prop);
+  if (child && !child.scalar) {
+    const group = rescopeUi(emitBlockUi(program, child), prop.name);
+    const label = propLabel(program, prop);
+    if (label) group.label = label;
+    const description = getDoc(program, prop);
+    const widget = propWidget(program, prop);
+    if (description || widget)
+      group.options = {
+        ...(group.options ?? {}),
+        ...(description ? { description } : {}),
+        ...(widget ? { widget } : {}),
+      };
+    return group;
+  }
+
+  const node: UiNode = {
+    type: "Control",
+    scope: `#/properties/${prop.name}`,
+  };
+  const label = propLabel(program, prop);
+  if (label) node.label = label;
+
+  const detail = itemDetail(program, prop);
+  if (detail) node.options = { ...(node.options ?? {}), detail };
+
+  const widget = propWidget(program, prop);
+  if (widget) node.options = { ...(node.options ?? {}), widget };
+  if (propReadOnly(program, prop))
+    node.options = { ...(node.options ?? {}), readonly: true };
+
+  const conds = propVisibleWhen(program, prop);
+  if (conds.length === 1) {
+    const c = conds[0];
+    node.rule = {
+      effect: "SHOW",
+      condition: jsonFormsCondition(c),
+    };
+  } else {
+    const enabled = propEnabledWhen(program, prop);
+    if (enabled.length === 1) {
+      const c = enabled[0];
+      node.rule = {
+        effect: "ENABLE",
+        condition: jsonFormsCondition(c),
+      };
+    } else {
+      const readOnly = propReadOnlyWhen(program, prop);
+      if (readOnly.length === 1) {
+        const c = readOnly[0];
+        node.rule = {
+          effect: "DISABLE",
+          condition: jsonFormsCondition(c),
+        };
+      }
+    }
+  }
+
+  return node;
+}
+
+/**
  * The canonical UI artifact for one block. Scopes are relative to this block's own
  * root, so it renders standalone; children are incorporated and re-scoped.
  */
@@ -231,60 +303,7 @@ export function emitBlockUi(program: Program, block: LayoutSource): UiNode {
     return node;
   }
 
-  const nodeForProperty = (prop: ModelProperty): UiNode => {
-    const child = childBlock(program, prop);
-    if (child && !child.scalar) {
-      const group = rescopeUi(emitBlockUi(program, child), prop.name);
-      const widget = propWidget(program, prop);
-      return widget
-        ? { ...group, options: { ...(group.options ?? {}), widget } }
-        : group;
-    }
-
-    const node: UiNode = {
-      type: "Control",
-      scope: `#/properties/${prop.name}`,
-    };
-    const label = propLabel(program, prop);
-    if (label) node.label = label;
-
-    const detail = itemDetail(program, prop);
-    if (detail) node.options = { ...(node.options ?? {}), detail };
-
-    const widget = propWidget(program, prop);
-    if (widget) node.options = { ...(node.options ?? {}), widget };
-    if (propReadOnly(program, prop))
-      node.options = { ...(node.options ?? {}), readonly: true };
-
-    const conds = propVisibleWhen(program, prop);
-    if (conds.length === 1) {
-      const c = conds[0];
-      node.rule = {
-        effect: "SHOW",
-        condition: jsonFormsCondition(c),
-      };
-    } else {
-      const enabled = propEnabledWhen(program, prop);
-      if (enabled.length === 1) {
-        const c = enabled[0];
-        node.rule = {
-          effect: "ENABLE",
-          condition: jsonFormsCondition(c),
-        };
-      } else {
-        const readOnly = propReadOnlyWhen(program, prop);
-        if (readOnly.length === 1) {
-          const c = readOnly[0];
-          node.rule = {
-            effect: "DISABLE",
-            condition: jsonFormsCondition(c),
-          };
-        }
-      }
-    }
-
-    return node;
-  };
+  const nodeForProperty = (prop: ModelProperty) => propertyUi(program, prop);
 
   const props =
     block.model.kind === "Model" ? layoutProps(program, block.model) : [];

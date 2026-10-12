@@ -14,6 +14,7 @@ import {
   getMaxItems,
   getMinItems,
 } from "@typespec/compiler";
+import type { Node } from "@typespec/compiler/ast";
 import { stateKeys } from "./lib.js";
 
 interface ConditionBase {
@@ -172,6 +173,22 @@ export const modelFormMeta = (p: Program, model: Model) =>
 /** Every model with `@Meta.form`, in the order the decorators ran. */
 export const allFormMetas = (p: Program) =>
   p.stateMap(stateKeys.presentationMeta) as Map<Model, FormMeta>;
+
+/** Every `@UI.layout` model, with the model it presents. */
+export const allLayouts = (p: Program) =>
+  p.stateMap(stateKeys.layout) as Map<Model, Model>;
+
+/** A `@UI.field` on a layout entry: the field it lays out, and the reference's syntax. */
+export interface LayoutFieldRef {
+  field: ModelProperty;
+  node: Node;
+}
+
+export const entryField = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.layoutField, prop) as LayoutFieldRef | undefined;
+
+export const propFlatten = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.flatten, prop) === true;
 
 /** All blocks in the program, in declaration order. */
 export function allBlocks(program: Program): Block[] {

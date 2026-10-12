@@ -27,6 +27,25 @@ extern dec overrides(
   patch: valueof Record<unknown>
 );
 
+/**
+ * This model is a presentation of `form`. Its properties are sections, in order.
+ *
+ * A property inside a section is one of three things. A field reference
+ * (`payee: Form.payee;`) places that field as its model lays it out. A model with
+ * `@UI.field` places that field with the changes it lists. A model without `@UI.field` is a
+ * new group of only what it lists.
+ */
+extern dec layout(target: Model, form: Model);
+
+/**
+ * Lay out one field's contents here. Entries inside are relative to the field's type, or
+ * its item type for a list. The field's unlisted children follow in their declared order.
+ */
+extern dec field(target: ModelProperty, field: ModelProperty);
+
+/** Place the referenced field's children here instead of as a group of their own. */
+extern dec flatten(target: ModelProperty);
+
 extern dec label(target: Model | Scalar | ModelProperty, text: valueof string);
 extern dec helpText(target: ModelProperty, text: valueof string);
 /**
