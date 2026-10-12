@@ -11,6 +11,7 @@ import {
   getId,
 } from "@typespec/json-schema";
 import { allBlocks, type Block } from "./model.js";
+import { resolveForms } from "./forms.js";
 import { reportDiagnostic } from "./lib.js";
 import { blockSchemaRef } from "./decorators/index.js";
 import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
@@ -85,6 +86,7 @@ export async function $onEmit(
   );
 
   const blocks = allBlocks(program);
+  const { forms } = resolveForms(program);
   const modelsByName = indexModels(program.getGlobalNamespaceType());
   const refToDir = new Map(
     blocks.map((b) => [
@@ -136,10 +138,12 @@ export async function $onEmit(
     await write(`${dir}/ui.json`, casing.json(emitBlockUi(program, block)));
     await write(`${dir}/index.json`, index);
 
-    if (block.kind === "form") {
+    if (block.kind === "submission") {
+      const form = forms.find((f) => f.model === block.model);
       await write(`${dir}/manifest.json`, {
         contract: "resolved-form-package/v1",
-        form: block.meta,
+        ...(form ? { form: form.meta } : {}),
+        submission: block.meta,
         artifacts: {
           "schema.json": "generated",
           "ui.json": "generated",

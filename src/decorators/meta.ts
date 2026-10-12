@@ -20,12 +20,19 @@ export const $question = (ctx: Ctx, target: Model | Scalar, meta: unknown) => {
   publishAs(ctx, target, m.id);
 };
 
-/** `@Meta.form`: the form's identity and the provenance of the paper form it mirrors. */
-export const $form = (ctx: Ctx, target: Model, meta: unknown) => {
+/**
+ * `@Meta.submission`: what a form collects and submits. Publishes the model's JSON Schema,
+ * as `@Meta.question` does, so a submission is a block.
+ */
+export const $submission = (ctx: Ctx, target: Model, meta: unknown) => {
   const m = plain(ctx, meta) as { id: string };
-  set(ctx, stateKeys.formMeta, target, m);
+  set(ctx, stateKeys.submissionMeta, target, m);
   publishAs(ctx, target, m.id);
 };
+
+/** `@Meta.form`: one presentation's identity. Publishes no schema of its own. */
+export const $form = (ctx: Ctx, target: Model, meta: unknown) =>
+  set(ctx, stateKeys.presentationMeta, target, plain(ctx, meta));
 
 /**
  * `@Meta.tag`: catalogue markers. Unlike the entity, a tag also applies to a bare

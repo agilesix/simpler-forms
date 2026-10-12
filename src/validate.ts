@@ -45,6 +45,7 @@ import {
 } from "./model.js";
 import { resolveMappingWithProblems } from "./mapping.js";
 import { resolveMappingFrom } from "./mapping-from.js";
+import { resolveForms } from "./forms.js";
 
 /**
  * Whole-program checks whose failure means the emitted artifacts would be wrong.
@@ -53,13 +54,15 @@ import { resolveMappingFrom } from "./mapping-from.js";
  * one exists because the defect it catches is currently invisible: a question named after a
  * form, two blocks colliding on one output path, a condition comparing against a value the
  * source enum does not have, a calculation that depends on itself, a field that is required
- * but can be hidden, a field in no section, and a widget no renderer was declared to provide.
+ * but can be hidden, a field in no section, a widget no renderer was declared to provide, and a
+ * form that cannot be published.
  */
 export function $onValidate(program: Program): void {
   const blocks = allBlocks(program);
 
   checkQuestionIds(program, blocks);
   checkDuplicateIds(program, blocks);
+  program.reportDiagnostics(resolveForms(program).problems);
 
   for (const block of blocks) {
     if (block.model.kind !== "Model") continue;
@@ -566,7 +569,7 @@ function compositionParents(
 function checkComputedPaths(program: Program, blocks: Block[]): void {
   const forms = blocks.filter(
     (block): block is Block & { model: Model } =>
-      block.kind === "form" && block.model.kind === "Model",
+      block.kind === "submission" && block.model.kind === "Model",
   );
   const models: Model[] = [];
   const visit = (namespace: Namespace): void => {
@@ -817,7 +820,7 @@ function checkRequiredButHidden(program: Program, prop: ModelProperty): void {
 // sections and overrides
 
 function checkSections(program: Program, block: Block): void {
-  if (block.kind !== "form" || !block.sections) return;
+  if (block.kind !== "submission" || !block.sections) return;
   for (const prop of orderedProps(program, block)) {
     if (propOmit(program, prop)) continue;
     if (propSection(program, prop)) continue;

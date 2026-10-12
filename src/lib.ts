@@ -38,7 +38,25 @@ export const $lib = createTypeSpecLibrary({
     "form-scoped-question-id": {
       severity: "error",
       messages: {
-        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; put form deltas in @UI.overrides.`,
+        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; put what one form needs on its @Meta.submission model, or in @UI.overrides.`,
+      },
+    },
+    "layout-form-without-submission": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has @Meta.form but no @Meta.submission, so it presents nothing that can be published. Give it a @Meta.submission.`,
+      },
+    },
+    "layout-form-id": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} presents ${"submission"} and needs its own id: give its @Meta.form an id.`,
+      },
+    },
+    "layout-form-id-duplicate": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Form id "${"id"}" is published by both ${"first"} and ${"second"}; give one of them another id.`,
       },
     },
     "duplicate-block-id": {
@@ -257,7 +275,8 @@ export const $lib = createTypeSpecLibrary({
   },
   state: {
     questionMeta: {},
-    formMeta: {},
+    submissionMeta: {},
+    presentationMeta: {},
     tags: {},
     entity: {},
     responseRole: {},

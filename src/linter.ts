@@ -139,7 +139,7 @@ const sectionUnused = createRule({
       root: (program) => {
         for (const block of allBlocks(program)) {
           if (
-            block.kind !== "form" ||
+            block.kind !== "submission" ||
             !block.sections ||
             block.model.kind !== "Model"
           )

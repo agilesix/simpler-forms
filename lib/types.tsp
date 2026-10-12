@@ -51,17 +51,33 @@ model QuestionMeta {
   classification?: BlockClassification;
 }
 
-/** Portable identity, lifecycle, and source metadata for a form. */
-model FormMeta {
-  /** Semantic id — e.g. "key-contacts". */
+/**
+ * What a form collects and submits, shared by every presentation of it: the schema's
+ * identity and the paper form it mirrors. A change to any of these is a new submission.
+ */
+model SubmissionMeta {
+  /** Semantic id — e.g. "key-contacts". Also the published schema's id. */
   id: string;
 
   legacyFormId?: int32;
-  formName: string;
   shortFormName: string;
   formVersion: string;
   agencyCode?: string;
   ombNumber?: string;
+}
+
+/**
+ * One presentation of a submission, published under its own id. Everything about the
+ * submission comes from the model it presents, so it cannot be restated here.
+ */
+model FormMeta {
+  /** Defaults to the submission's id when the form presents its own model. */
+  id?: string;
+
+  formName: string;
+
+  /** Revision of this presentation. Not the Grants.gov version, which is the submission's. */
+  revision?: string;
 }
 
 /** Source-specific constraints applied where a reusable question is composed into a form. */

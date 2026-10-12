@@ -93,7 +93,7 @@ under the same name are an error, and so is one name emitted two ways.
 ```
 lib/            TypeSpec declarations — the decorator vocabulary
   main.tsp        the entry point a consumer imports
-  meta.tsp        @Meta.*   — question, form, tag, role
+  meta.tsp        @Meta.*   — question, submission, form, tag, role
   ui.tsp          @UI.*     — labels, sections, widgets, overrides
   validation.tsp  @Validation.*
   mapping.tsp     @Mapping.* — links to other representations of a response

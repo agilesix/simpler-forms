@@ -13,6 +13,7 @@ export * from "./public.js";
 export const $decorators = {
   "SimplerForms.Meta": {
     question: d.$question,
+    submission: d.$submission,
     form: d.$form,
     tag: d.$tag,
     role: d.$role,
