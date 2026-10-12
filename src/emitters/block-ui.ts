@@ -7,19 +7,16 @@ import {
   childBlock,
   modelLabel,
   modelOrder,
-  modelOverrides,
   modelProperties,
   propEnabledWhen,
   propLabel,
   propOmit,
   propReadOnly,
   propReadOnlyWhen,
-  propSection,
   propVisibleWhen,
   propWidget,
   readBlock,
 } from "../model.js";
-import { normalizedOverrideEnabledWhen } from "./override-condition.js";
 
 /** An answered value: not null, not blank, not an empty list. */
 const answeredSchema = {
@@ -81,56 +78,6 @@ export interface UiNode {
   rule?: Record<string, unknown>;
 }
 
-type Overrides = Record<string, Record<string, unknown>>;
-
-/** Convert a canonical JSON Forms scope into the dotted path addressed by @UI.overrides. */
-const dataPathFromScope = (scope: string): string | undefined => {
-  if (!scope.startsWith("#/properties/")) return undefined;
-  const tokens = scope.slice(2).split("/");
-  const path: string[] = [];
-  for (let index = 0; index < tokens.length;) {
-    if (tokens[index] !== "properties" || !tokens[index + 1]) return undefined;
-    path.push(tokens[index + 1]);
-    index += 2;
-    if (tokens[index] === "items") index += 1;
-  }
-  return path.join(".");
-};
-
-/** Emit the portable JSON Forms equivalent of a form-scoped enabledWhen override. */
-const overrideEnabledRule = (
-  override: Record<string, unknown>,
-): Record<string, unknown> | undefined => {
-  const condition = normalizedOverrideEnabledWhen(override);
-  if (!condition) return undefined;
-  const scope = `#/${condition.sourcePath.map((step) => `properties/${step}`).join("/")}`;
-  const schema =
-    condition.operator === "in"
-      ? { enum: condition.values }
-      : { const: condition.value };
-  return { effect: "ENABLE", condition: { scope, schema } };
-};
-
-/** Apply occurrence-specific behavior after recursively composing canonical child UI trees. */
-const applyOverrides = (node: UiNode, overrides: Overrides): UiNode => {
-  const out: UiNode = { ...node };
-  if (typeof node.scope === "string") {
-    const path = dataPathFromScope(node.scope);
-    const rule = path ? overrideEnabledRule(overrides[path] ?? {}) : undefined;
-    if (rule && node.rule) {
-      throw new Error(
-        `@UI.overrides enabledWhen collides with intrinsic UI behavior at ${path}`,
-      );
-    }
-    if (rule) out.rule = rule;
-  }
-  if (node.elements)
-    out.elements = node.elements.map((child) =>
-      applyOverrides(child, overrides),
-    );
-  return out;
-};
-
 /** Re-prefix every Control scope so a child's tree sits under `propName`. */
 export function rescopeUi(node: UiNode, propName: string): UiNode {
   const out: UiNode = { ...node };
@@ -189,10 +136,7 @@ function layoutProps(program: Program, model: Model): ModelProperty[] {
 }
 
 /** What laying out a model needs, which a block has and a form-local model can supply. */
-type LayoutSource = Pick<
-  Block,
-  "model" | "scalar" | "label" | "doc" | "sections" | "overrides"
->;
+type LayoutSource = Pick<Block, "model" | "scalar" | "label" | "doc">;
 
 /** A model laid out as a block would be, whether or not it is one. */
 export const layoutSource = (program: Program, model: Model): LayoutSource =>
@@ -201,7 +145,6 @@ export const layoutSource = (program: Program, model: Model): LayoutSource =>
     scalar: false,
     label: modelLabel(program, model),
     doc: getDoc(program, model),
-    overrides: modelOverrides(program, model),
   };
 
 /**
@@ -307,39 +250,10 @@ export function emitBlockUi(program: Program, block: LayoutSource): UiNode {
 
   const props =
     block.model.kind === "Model" ? layoutProps(program, block.model) : [];
-  const elements: UiNode[] = [];
-  const documentedStaticSections = block.sections
-    ? [...block.sections.members.values()].filter(
-        (member) =>
-          getDoc(program, member) &&
-          !props.some(
-            (prop) => propSection(program, prop)?.name === member.name,
-          ),
-      )
-    : [];
-
-  if (documentedStaticSections.length && block.sections) {
-    const emitted = new Set<string>();
-    for (const member of block.sections.members.values()) {
-      const description = getDoc(program, member);
-      const members = props.filter(
-        (prop) => propSection(program, prop)?.name === member.name,
-      );
-      if (!members.length && description)
-        elements.push({ type: "Label", text: description });
-      for (const prop of members) {
-        elements.push(nodeForProperty(prop));
-        emitted.add(prop.name);
-      }
-    }
-    for (const prop of props)
-      if (!emitted.has(prop.name)) elements.push(nodeForProperty(prop));
-  } else {
-    elements.push(...props.map(nodeForProperty));
-  }
+  const elements = props.map(nodeForProperty);
 
   const group: UiNode = { type: "Group", elements };
   if (block.label) group.label = block.label;
   else if (block.doc) group.label = block.doc;
-  return applyOverrides(group, block.overrides);
+  return group;
 }

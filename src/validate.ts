@@ -20,7 +20,6 @@ import {
   cardinalityRequiredWhen,
   childBlock,
   conditionSourceModel,
-  orderedProps,
   propCalculationMaterialization,
   propComputed,
   readBlock,
@@ -29,10 +28,8 @@ import {
   modelProperties,
   propEnabledWhen,
   propNotBefore,
-  propOmit,
   propReadOnlyWhen,
   propRequiredWhen,
-  propSection,
   propVisibleWhen,
   propValidationConstraintsWhen,
   scalarType,
@@ -57,8 +54,8 @@ import { emitLayoutUi } from "./emitters/layout-ui.js";
  * one exists because the defect it catches is currently invisible: a question named after a
  * form, two blocks colliding on one output path, a condition comparing against a value the
  * source enum does not have, a calculation that depends on itself, a field that is required
- * but can be hidden, a field in no section, a widget no renderer was declared to provide, and a
- * form that cannot be published.
+ * but can be hidden, a widget no renderer was declared to provide, a form that cannot be
+ * published, and a layout that misplaces a field.
  */
 export function $onValidate(program: Program): void {
   const blocks = allBlocks(program);
@@ -70,8 +67,6 @@ export function $onValidate(program: Program): void {
 
   for (const block of blocks) {
     if (block.model.kind !== "Model") continue;
-    checkSections(program, block);
-    checkOverridePaths(program, block);
     for (const prop of block.model.properties.values()) {
       checkConditions(program, prop);
       checkRequiredButHidden(program, prop);
@@ -836,58 +831,7 @@ function checkRequiredButHidden(program: Program, prop: ModelProperty): void {
 }
 
 // ---------------------------------------------------------------------------
-// sections and overrides
-
-function checkSections(program: Program, block: Block): void {
-  if (block.kind !== "submission" || !block.sections) return;
-  for (const prop of orderedProps(program, block)) {
-    if (propOmit(program, prop)) continue;
-    if (propSection(program, prop)) continue;
-    if (typeof block.overrides[prop.name]?.section === "string") continue;
-    reportDiagnostic(program, {
-      code: "section-orphan",
-      target: prop,
-      format: { name: prop.name },
-    });
-  }
-}
-
-/**
- * An override addresses a field by the path an applicant's answer takes. A path that does
- * not resolve is a silently ignored override -- the CommonGrants bank's stringly-typed
- * override table, caught at compile time instead of at website build time.
- */
-function checkOverridePaths(program: Program, block: Block): void {
-  const paths = Object.keys(block.overrides);
-  for (const [overridePath, override] of Object.entries(block.overrides)) {
-    if (override.visibleReadOnly === true && override.readOnly !== true) {
-      reportDiagnostic(program, {
-        code: "visible-read-only-without-read-only",
-        target: block.model,
-        format: { path: overridePath },
-      });
-    }
-    const condition = override.enabledWhen;
-    const enabledWhen = condition as Record<string, unknown> | undefined;
-    if (
-      enabledWhen &&
-      typeof enabledWhen === "object" &&
-      !Array.isArray(enabledWhen) &&
-      typeof enabledWhen.path === "string"
-    ) {
-      paths.push(enabledWhen.path);
-    }
-  }
-  for (const path of paths) {
-    const reason = resolvePath(program, block.model as Model, path.split("."));
-    if (!reason) continue;
-    reportDiagnostic(program, {
-      code: "override-path-unresolved",
-      target: block.model,
-      format: { path, reason },
-    });
-  }
-}
+// paths
 
 /** Undefined when the path resolves; otherwise why it did not. */
 function resolvePath(
@@ -935,7 +879,6 @@ function objectBehind(
   return type;
 }
 
-/** A widget declaration naming a section the form does not have would render nothing. */
 // ---------------------------------------------------------------------------
 // calculations
 

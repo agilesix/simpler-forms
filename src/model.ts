@@ -98,9 +98,7 @@ export interface Block {
   responseRole?: ResponseRole;
   label?: string;
   doc?: string;
-  sections?: Enum;
   order?: string[];
-  overrides: Record<string, Record<string, unknown>>;
 }
 
 export type ResponseRole =
@@ -148,13 +146,7 @@ export function readBlock(
       ResponseRole | undefined,
     label: g(program, stateKeys.label, model) as string | undefined,
     doc: getDoc(program, model),
-    sections: g(program, stateKeys.sections, model) as Enum | undefined,
     order: g(program, stateKeys.order, model) as string[] | undefined,
-    overrides:
-      (g(program, stateKeys.overrides, model) as Record<
-        string,
-        Record<string, unknown>
-      >) ?? {},
   };
 }
 
@@ -224,8 +216,6 @@ export const widgetMembers = (p: Program) =>
 export const propEncodedCheckboxGroup = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.encodedCheckboxGroup, prop) as
     Record<string, unknown> | undefined;
-export const propSection = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.section, prop) as { name: string; label?: string } | undefined;
 export const propReadOnly = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.readOnly, prop) === true;
 export const propResponseRole = (p: Program, prop: ModelProperty) =>
@@ -416,26 +406,6 @@ export const modelLabel = (p: Program, model: Model) =>
 export const modelOrder = (p: Program, model: Model) =>
   g(p, stateKeys.order, model) as string[] | undefined;
 
-/**
- * `@UI.overrides` for any model, block or not, keyed by dotted path relative to that model.
- *
- * A block's own table also reaches emitters through `Block.overrides`. This accessor exists
- * for the other case: a form-local model composed by a form, whose overrides describe the
- * thing being composed rather than one occurrence of it. A form asking for the same contact
- * four times states such an override once, and an emitter rebases it onto each occurrence.
- */
-export const modelOverrides = (p: Program, model: Model) =>
-  (g(p, stateKeys.overrides, model) as Record<
-    string,
-    Record<string, unknown>
-  >) ?? {};
-
-export const propOverrides = (p: Program, prop: ModelProperty) =>
-  (g(p, stateKeys.overrides, prop) as Record<
-    string,
-    Record<string, unknown>
-  >) ?? {};
-
 /** Own and inherited properties in declaration order, with the derived declaration winning. */
 export function modelProperties(model: Model): ModelProperty[] {
   const chain: Model[] = [];
@@ -458,7 +428,7 @@ export function modelProperties(model: Model): ModelProperty[] {
 export function orderedProps(program: Program, block: Block): ModelProperty[] {
   if (block.model.kind !== "Model") return [];
   // A submission may extend a question to preserve flat response fields with explicit semantic
-  // lineage. Its inherited fields remain its members for sectioning and presentation.
+  // lineage. Its inherited fields remain its members for presentation.
   // Question artifacts themselves keep their local surface and compose their base through
   // JSON Schema `allOf`, so walking inherited properties there would duplicate that surface.
   const candidates =

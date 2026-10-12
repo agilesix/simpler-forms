@@ -8,25 +8,6 @@ using TypeSpec.Reflection;
 
 namespace SimplerForms.UI;
 
-/** Declare the ordered section set for a block. */
-extern dec sections(target: Model, sections: Enum);
-
-/** Assign a property (and everything under it) to one section. */
-extern dec section(target: ModelProperty, section: valueof EnumMember);
-
-/**
- * Form-scoped override table, keyed by dotted path relative to the target.
- * Presentation keys stay local to the form. `enabledWhen` may name an exact sibling/root
- * response path and equality value when a form applies behavior to a shared question.
- * `visibleReadOnly: true` is valid only with `readOnly: true`: it renders a visible control
- * backed by a read-only JSON Schema occurrence. Plain `readOnly` retains the target's historic
- * hidden/null behavior for technical identifiers.
- */
-extern dec overrides(
-  target: Model | ModelProperty,
-  patch: valueof Record<unknown>
-);
-
 /**
  * This model is a presentation of `form`. Its properties are sections, in order.
  *

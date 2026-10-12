@@ -38,7 +38,7 @@ export const $lib = createTypeSpecLibrary({
     "form-scoped-question-id": {
       severity: "error",
       messages: {
-        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; put what one form needs on its @Meta.submission model, or in @UI.overrides.`,
+        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; present a question differently in one form with that form's @UI.layout.`,
       },
     },
     "layout-form-without-submission": {
@@ -329,18 +329,6 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"name"} is always required but only sometimes visible, so an applicant can be blocked by a field they cannot see. Make it optional and use @Validation.requiredWhen, or drop the visibility condition.`,
       },
     },
-    "override-path-unresolved": {
-      severity: "error",
-      messages: {
-        default: paramMessage`@UI.overrides path "${"path"}" does not resolve: ${"reason"}.`,
-      },
-    },
-    "visible-read-only-without-read-only": {
-      severity: "error",
-      messages: {
-        default: paramMessage`@UI.overrides path "${"path"}" requests visibleReadOnly without readOnly. A visible read-only control must also be marked readOnly so schema and UI cannot disagree.`,
-      },
-    },
     "property-casing-collision": {
       severity: "error",
       messages: {
@@ -351,12 +339,6 @@ export const $lib = createTypeSpecLibrary({
       severity: "error",
       messages: {
         default: paramMessage`${"property"} would be emitted as "${"name"}", but ${"other"} as "${"otherName"}". A property name is emitted the same way everywhere, so give both the same @encodedName.`,
-      },
-    },
-    "section-orphan": {
-      severity: "error",
-      messages: {
-        default: paramMessage`${"name"} is in no section, so it renders nowhere. Give it a @UI.section, or @UI.omit it if that is deliberate.`,
       },
     },
   },
@@ -379,10 +361,7 @@ export const $lib = createTypeSpecLibrary({
     widget: {},
     widgetMember: {},
     encodedCheckboxGroup: {},
-    sections: {},
-    section: {},
     order: {},
-    overrides: {},
     readOnly: {},
     omit: {},
     visibleWhen: {},

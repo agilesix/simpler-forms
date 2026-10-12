@@ -19,9 +19,6 @@ export const $decorators = {
     role: d.$role,
   },
   "SimplerForms.UI": {
-    sections: d.$sections,
-    section: d.$section,
-    overrides: d.$overrides,
     layout: d.$layout,
     field: d.$field,
     flatten: d.$flatten,

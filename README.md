@@ -76,8 +76,8 @@ Set in `tspconfig.yaml` under `options: simpler-forms:`.
 `property-casing` applies to `schema.json` property keys, `required` and conditional rules,
 `ui.json` Control and rule scopes, `index.json` field occurrence paths, and `@example`
 values. Specifications are still written in TypeSpec names, including string paths such as
-`@Validation.requiredPaths("primaryContact.name.firstName")` and `@UI.overrides` keys, and a
-path that does not resolve is reported in the name the author wrote.
+`@Validation.requiredPaths("primaryContact.name.firstName")`, and a path that does not
+resolve is reported in the name the author wrote.
 
 The `snake` rule starts a word at each capital that follows a lowercase letter or a digit,
 and treats a run of capitals as one word, so `ombNumber` and `OMBNumber` both become
@@ -94,7 +94,7 @@ under the same name are an error, and so is one name emitted two ways.
 lib/            TypeSpec declarations — the decorator vocabulary
   main.tsp        the entry point a consumer imports
   meta.tsp        @Meta.*   — question, submission, form, tag, role
-  ui.tsp          @UI.*     — labels, sections, widgets, overrides
+  ui.tsp          @UI.*     — layouts, labels, widgets, conditions
   validation.tsp  @Validation.*
   mapping.tsp     @Mapping.* — links to other representations of a response
   types.tsp       shared scalars and enums
@@ -103,6 +103,8 @@ src/            the library implementation
   decorators/     decorator entry points, one module per namespace
   model.ts        typed accessors over decorator state
   mapping.ts      resolveMapping — a form's links in one mapping, through what it composes
+  forms.ts        which @Meta.form models are published, and under which ids
+  layout.ts       resolves a @UI.layout's references, placements and conditions
   validate.ts     $onValidate — cross-cutting checks reported as diagnostics
   linter.ts       lint rules
   emitter.ts      $onEmit — writes the canonical artifacts
@@ -157,6 +159,59 @@ model Contacts {
 
 On a property whose type is a question with fields of its own, the widget is emitted on the
 group those fields lay out as.
+
+**A submission is the data; a form is one way of presenting it.** `@Meta.submission` holds
+what a form collects and submits: the schema, its validation and mappings, and the
+Grants.gov identity, version included. `@Meta.form` is one presentation an applicant opens,
+published under its own id as `forms/<id>/`. A simple form is its own presentation, the way
+a question is: its fields' `@UI.*` decorators lay it out, and each object field becomes a
+labelled group.
+
+```tsp
+@Meta.submission(#{ id: "key-contacts", shortFormName: "Key_Contacts", formVersion: "2.0" })
+@Meta.form(#{ formName: "KEY CONTACTS" })
+model KeyContacts {
+  @UI.label("Applicant Organization Name")
+  applicantOrganizationName: OrganizationName;
+
+  @UI.widget(Rendering.Widget.FieldList)
+  keyContacts: KeyContact[];
+}
+```
+
+**A layout presents a submission another way.** A `@UI.layout` model points at the
+submission's fields with typed references, so a misspelled field is a compiler error. Its
+top-level properties are sections, in order. Inside one, a field reference places that
+field as its model lays it out; a model with `@UI.field` lays out one field's contents,
+listing what changes and leaving the rest in their declared order; a model without it is a
+new group of only what it lists. References are relative to the enclosing `@UI.field` type,
+or absolute from the presented model, so one entry model can serve several fields:
+
+```tsp
+model PersonWithoutCountyOrProvince {
+  @UI.omit county: Person.address::type.county;
+  @UI.omit province: Person.address::type.province;
+}
+
+@Meta.form(#{ id: "epa-key-contacts", formName: "EPA KEY CONTACTS FORM" })
+@UI.layout(EPAKeyContacts)
+model EPAKeyContactsLayout {
+  @UI.label("Authorized Representative")
+  @UI.field(EPAKeyContacts.authorizedRepresentative)
+  authorizedRepresentative: PersonWithoutCountyOrProvince;
+
+  @UI.label("Payee")
+  @UI.field(EPAKeyContacts.payee)
+  payee: PersonWithoutCountyOrProvince;
+}
+```
+
+An entry can set a label, help text (`@UI.helpText` or a doc comment), a widget, `@UI.omit`,
+`@UI.flatten` to place a field's children without their group, and one display condition
+whose source is a typed reference resolved the same way. Validation stays on the submission,
+which every layout shares, so a `@Validation.*` decorator on an entry is an error. Each
+layout with a `@Meta.form` is published under its own id with the submission's schema; one
+without is checked but not published.
 
 **Mappings link a form to its other representations.** A response often has to be written
 in another shape too: an XML document, a CSV row. `@Mapping.to` links a model or property to

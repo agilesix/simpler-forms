@@ -19,12 +19,9 @@ import {
 } from "../model.js";
 
 /**
- * The parts of a block's JSON Schema that `@typespec/json-schema` cannot produce.
- *
- * Two of them. Conditional requiredness, from `@Validation.requiredWhen`. And the
- * presentation a *form* puts on a member of a question it composes, from `@UI.overrides` --
- * SF-424 calls the authorized representative's phone "AOR Telephone Number" where the
- * question calls it "Telephone Number", and that belongs to the form.
+ * The parts of a block's JSON Schema that `@typespec/json-schema` cannot produce: what the
+ * `@Validation.*` decorators require, and the help text, read-only status and choice
+ * contracts the `@UI.*` decorators carry into the schema.
  *
  * Everything else -- types, constraints, enums, arrays, `required`, `$ref` composition,
  * `extends` as `allOf` -- comes from the stock emitter. The build merges this over it.
@@ -39,7 +36,6 @@ export function emitSchemaOverlay(
     program,
     orderedProps(program, block),
   );
-  const patches = overriddenPresentation(block);
   const readOnly = readOnlyAnnotations(program, model);
   const helpText = helpTextAnnotations(program, model);
   const constraints = constraintAnnotations(program, model);
@@ -49,7 +45,6 @@ export function emitSchemaOverlay(
   const alternatives = atLeastOneAnnotations(program, model);
   const parts = [
     conditionals,
-    patches,
     readOnly,
     helpText,
     constraints,
@@ -472,101 +467,6 @@ function conditionSchema(
     };
   }
   return nested;
-}
-
-/**
- * A form's own label and help text for a member of a question it composes.
- *
- * The member's schema is behind a `$ref`, so the patch goes beside it: a second `allOf`
- * branch naming the member. A consumer that resolves the reference sees the question's
- * wording, then the form's on top -- which is the order that makes the form win.
- */
-function overriddenPresentation(
-  block: Block,
-): Record<string, unknown> | undefined {
-  const patches: Record<string, Record<string, unknown>> = {};
-  for (const [path, override] of Object.entries(block.overrides)) {
-    const presentation: Record<string, unknown> = {};
-    if (typeof override.label === "string") presentation.title = override.label;
-    if (typeof override.helpText === "string")
-      presentation.description = override.helpText;
-    if (override.readOnly === true) presentation.readOnly = true;
-    if (!Object.keys(presentation).length) continue;
-
-    const [head, ...rest] = path.split(".");
-    if (!rest.length && override.readOnly !== true) {
-      // A root property is declared in this block, so `@UI.label` already covers it.
-      continue;
-    }
-    const property = modelProperty(block.model as Model, head);
-    const child = property ? childModel(property.type) : undefined;
-    let patch =
-      rest.length && child
-        ? nestPresentation(child.model, rest, presentation)
-        : rest.length
-          ? nest(rest, presentation)
-          : presentation;
-    if (rest.length && child?.repeated) patch = { items: patch };
-    patches[head] = merge(patches[head] ?? {}, patch);
-  }
-  if (!Object.keys(patches).length) return undefined;
-  return {
-    properties: Object.fromEntries(
-      Object.entries(patches).map(([name, patch]) => [
-        name,
-        { allOf: [patch] },
-      ]),
-    ),
-  };
-}
-
-/** Find one own or inherited property, preferring the derived declaration. */
-function modelProperty(model: Model, name: string): ModelProperty | undefined {
-  for (
-    let current: Model | undefined = model;
-    current;
-    current = current.baseModel
-  ) {
-    const property = current.properties.get(name);
-    if (property) return property;
-  }
-  return undefined;
-}
-
-/**
- * Nest one form-scoped presentation patch through the addressed model shape.
- *
- * Arrays require an `items` boundary in JSON Schema even though the authoring
- * path deliberately omits array syntax (`reports.total`, not `reports[].total`).
- */
-function nestPresentation(
-  model: Model,
-  steps: string[],
-  leaf: Record<string, unknown>,
-): Record<string, unknown> {
-  const [step, ...rest] = steps;
-  if (!step) return leaf;
-  const property = modelProperty(model, step);
-  const child = property ? childModel(property.type) : undefined;
-  let nested =
-    rest.length && child
-      ? nestPresentation(child.model, rest, leaf)
-      : rest.length
-        ? nest(rest, leaf)
-        : leaf;
-  if (rest.length && child?.repeated) nested = { items: nested };
-  return { properties: { [step]: nested } };
-}
-
-/** `["phone"], {title}` becomes `{properties: {phone: {title}}}`. */
-function nest(
-  steps: string[],
-  leaf: Record<string, unknown>,
-): Record<string, unknown> {
-  return steps.reduceRight<Record<string, unknown>>(
-    (inner, step) => ({ properties: { [step]: inner } }),
-    leaf,
-  );
 }
 
 function merge(

@@ -19,65 +19,6 @@ import {
   set,
 } from "./shared.js";
 
-// --- sections -------------------------------------------------------------
-
-export const $sections = (ctx: Ctx, target: Model, sections: Enum) =>
-  set(ctx, stateKeys.sections, target, sections);
-
-/**
- * `valueof EnumMember` arrives as a value, not the member type, so resolve the
- * member's name and label here rather than in the emitters.
- */
-export const $section = (ctx: Ctx, target: ModelProperty, section: unknown) =>
-  set(ctx, stateKeys.section, target, sectionRef(section));
-
-export function sectionRef(v: unknown): { name: string; label?: string } {
-  const m = v as any;
-  if (m && typeof m === "object") {
-    if (m.name)
-      return {
-        name: String(m.name),
-        label: m.value ? String(m.value) : undefined,
-      };
-    if (m.value?.name) {
-      return {
-        name: String(m.value.name),
-        label: m.value.value ? String(m.value.value) : undefined,
-      };
-    }
-  }
-  return { name: String(v) };
-}
-
-// --- form-scoped overrides ------------------------------------------------
-
-function overridePlain(value: unknown): unknown {
-  const candidate = value as any;
-  if (
-    candidate &&
-    typeof candidate === "object" &&
-    candidate.entityKind === "Value"
-  ) {
-    return literal(candidate);
-  }
-  if (Array.isArray(value)) return value.map(overridePlain);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [
-        key,
-        overridePlain(nested),
-      ]),
-    );
-  }
-  return value;
-}
-
-export const $overrides = (
-  ctx: Ctx,
-  target: Model | ModelProperty,
-  patch: unknown,
-) => set(ctx, stateKeys.overrides, target, overridePlain(plain(ctx, patch)));
-
 // --- layouts --------------------------------------------------------------
 
 export const $layout = (ctx: Ctx, target: Model, form: Model) =>

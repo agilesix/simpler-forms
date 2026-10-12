@@ -37,14 +37,10 @@ export {
   type PresentCondition,
 } from "./model.js";
 
-/** An `enabledWhen` from `@UI.overrides`, normalized to the same shape as the decorator. */
-export { normalizedOverrideEnabledWhen } from "./emitters/override-condition.js";
-
 // --- model-level state ----------------------------------------------------
 export {
   modelLabel,
   modelOrder,
-  modelOverrides,
   modelAtLeastOneOf,
   /** Own and inherited properties in declaration order, derived declaration winning. */
   modelProperties,
@@ -63,10 +59,8 @@ export {
   propHelpText,
   propWidget,
   propEncodedCheckboxGroup,
-  propSection,
   propOmit,
   propReadOnly,
-  propOverrides,
   propResponseRole,
   propVisibleWhen,
   propEnabledWhen,

@@ -47,13 +47,10 @@ describe("no-orphan-question", () => {
           @Meta.tag(TagName.name)
           scalar Asked extends string;
 
-          enum Section { only: "Only" }
 
           /** A form. */
           ${formMeta("asks")}
-          @UI.sections(Section)
           model Asks {
-            @UI.section(Section.only)
             field?: Asked;
           }
         `),
@@ -103,13 +100,10 @@ describe("no-orphan-question", () => {
             federal?: Quarters;
           }
 
-          enum Section { only: "Only" }
 
           /** A form. */
           ${formMeta("wraps")}
-          @UI.sections(Section)
           model Wraps {
-            @UI.section(Section.only)
             cash?: Wrapper;
           }
         `),
@@ -126,13 +120,10 @@ describe("no-orphan-question", () => {
           @Meta.tag(TagName.attachment)
           scalar AttachmentRef extends string;
 
-          enum Section { only: "Only" }
 
           /** A form. */
           ${formMeta("lists")}
-          @UI.sections(Section)
           model Lists {
-            @UI.section(Section.only)
             files?: AttachmentRef[];
           }
         `),
@@ -186,72 +177,6 @@ describe("require-question-tags", () => {
       .toEmitDiagnostics({
         code: "simpler-forms/require-question-tags",
       });
-  });
-});
-
-describe("section-unused", () => {
-  it("reports a section no field is placed in", async () => {
-    const lint = await tester("section-unused");
-    await lint
-      .expect(
-        form(`
-          enum Section { used: "Used", empty: "Empty" }
-
-          /** A form. */
-          ${formMeta("half-empty")}
-          @UI.sections(Section)
-          model HalfEmpty {
-            @UI.section(Section.used)
-            field?: string;
-          }
-        `),
-      )
-      .toEmitDiagnostics({
-        code: "simpler-forms/section-unused",
-        message: /empty/,
-      });
-  });
-
-  it("accepts a form whose sections are all used", async () => {
-    const lint = await tester("section-unused");
-    await lint
-      .expect(
-        form(`
-          enum Section { used: "Used" }
-
-          /** A form. */
-          ${formMeta("full")}
-          @UI.sections(Section)
-          model Full {
-            @UI.section(Section.used)
-            field?: string;
-          }
-        `),
-      )
-      .toBeValid();
-  });
-
-  it("accepts a documented empty section as static presentation content", async () => {
-    const lint = await tester("section-unused");
-    await lint
-      .expect(
-        form(`
-          enum Section {
-            /** Read these instructions before continuing. */
-            instructions: "Instructions",
-            used: "Used",
-          }
-
-          /** A form. */
-          ${formMeta("with-instructions")}
-          @UI.sections(Section)
-          model WithInstructions {
-            @UI.section(Section.used)
-            field?: string;
-          }
-        `),
-      )
-      .toBeValid();
   });
 });
 
