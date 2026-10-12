@@ -206,8 +206,9 @@ model Root {
 
 `resolveMappingFrom` resolves those links into the same tree `resolveMapping` does, so an
 emitter can read either. A target property with no `@Mapping.from` whose own properties are
-filled is a wrapper element; the tree, keyed by the form's properties, cannot hold one, so it
-is reported.
+filled is a wrapper element. The tree, keyed by the form's properties, cannot hold one, so it
+is left out with a `mapping-from-wrapper` problem, which an emitter whose output cannot hold a
+wrapper either reports.
 
 ## License
 

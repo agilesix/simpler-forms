@@ -133,9 +133,8 @@ describe("resolveMappingFrom", () => {
     expect(from.problems.map((p) => p.code)).toEqual([
       "simpler-forms/mapping-from-wrapper",
     ]);
-    expect(diagnostics.map((d) => d.code)).toEqual([
-      "simpler-forms/mapping-from-wrapper",
-    ]);
+    // An emitter whose output cannot hold a wrapper reports it; compiling does not.
+    expect(diagnostics).toEqual([]);
   });
 
   it("reports a field that is not below the parent's", async () => {

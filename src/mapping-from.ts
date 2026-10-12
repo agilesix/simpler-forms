@@ -22,7 +22,8 @@ import {
  * its `@Mapping.from` names, found among the fields of the one its parent is filled from; one
  * found below a field with no element of its own lands in a group. A target property with
  * no `@Mapping.from` whose own properties are filled is a wrapper element, which a tree keyed
- * by the form's properties cannot hold: it is reported and left out.
+ * by the form's properties cannot hold: it is left out, with a `mapping-from-wrapper` problem
+ * for an emitter whose output cannot hold it either to report.
  */
 export function resolveMappingFrom(
   program: Program,

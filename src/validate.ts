@@ -395,6 +395,9 @@ function checkMappings(program: Program): void {
       if (source.kind !== "Model") continue;
       for (const problem of resolveMappingFrom(program, source, mapping)
         ?.problems ?? []) {
+        // A wrapper element is a limit of what an emitter writes, not a broken link: the
+        // emitter whose output cannot hold one reports it.
+        if (problem.code === "simpler-forms/mapping-from-wrapper") continue;
         const key = JSON.stringify([problem.code, problem.message]);
         if (reported.has(key)) continue;
         reported.add(key);
