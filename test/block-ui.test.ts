@@ -48,6 +48,38 @@ const spec = (body: string) => `
 `;
 
 describe("emitBlockUi", () => {
+  describe("a model the form declares itself", () => {
+    it("lays out its fields as a labelled Group, in @UI.order", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.order(Profile.role, Profile.contact)
+          model Profile {
+            contact?: QuestionContact;
+            role?: string;
+          }
+          ${formMeta("profiles")}
+          model Profiles {
+            /** The lead's profile. */
+            @UI.label("Lead")
+            lead: Profile;
+          }
+        `),
+      );
+
+      const lead = ui.elements?.[0];
+      expect(lead).toMatchObject({
+        type: "Group",
+        label: "Lead",
+        options: { description: "The lead's profile." },
+      });
+      expect(scopes(lead)).toEqual([
+        "#/properties/lead/properties/role",
+        "#/properties/lead/properties/contact/properties/name",
+        "#/properties/lead/properties/contact/properties/email",
+      ]);
+    });
+  });
+
   describe("a repeated property", () => {
     it("lays out each entry in options.detail, interleaving inherited fields in @UI.order", async () => {
       const ui = await formUi(

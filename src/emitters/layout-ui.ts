@@ -118,7 +118,7 @@ function build(
       } else if (own.type === "Group") {
         ui = { ...own, elements };
       } else {
-        // A model that is not a question lays out as one Control until a layout opens it.
+        // A field that lays out as one Control becomes a Group once a layout lists entries in it.
         const inner = behind(node.prop.type);
         const label =
           propLabel(program, node.prop) ??

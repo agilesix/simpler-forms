@@ -164,17 +164,28 @@ function itemDetail(program: Program, prop: ModelProperty): UiNode | undefined {
   return emitBlockUi(program, layoutSource(program, item));
 }
 
+/** The model a property's fields lay out from: a composed question, or a model of the form's own. */
+function fieldSource(
+  program: Program,
+  prop: ModelProperty,
+): LayoutSource | undefined {
+  const child = childBlock(program, prop);
+  if (child) return child.scalar ? undefined : child;
+  const type = prop.type;
+  if (type.kind !== "Model" || type.indexer) return undefined;
+  return layoutSource(program, type);
+}
+
 /**
  * One property as its model lays it out, scoped to that model: a Group of a composed
- * question's fields, or a Control.
+ * question's fields, or of a model the form declares itself, or a Control.
  *
- * A composed question's Group takes the property's label before the question's, and the
- * property's doc comment as its description, so a question asked in several roles is told
- * apart by role.
+ * A Group takes the property's label before the question's, and the property's doc comment
+ * as its description, so a question asked in several roles is told apart by role.
  */
 export function propertyUi(program: Program, prop: ModelProperty): UiNode {
-  const child = childBlock(program, prop);
-  if (child && !child.scalar) {
+  const child = fieldSource(program, prop);
+  if (child) {
     const group = rescopeUi(emitBlockUi(program, child), prop.name);
     const label = propLabel(program, prop);
     if (label) group.label = label;
