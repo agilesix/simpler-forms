@@ -27,7 +27,7 @@ extern dec field(target: ModelProperty, field: ModelProperty);
 /** Place the referenced field's children here instead of as a group of their own. */
 extern dec flatten(target: ModelProperty);
 
-extern dec label(target: Model | Scalar | ModelProperty, text: valueof string);
+extern dec label(target: Model | Scalar | Enum | ModelProperty, text: valueof string);
 extern dec helpText(target: ModelProperty, text: valueof string);
 /**
  * Declare the widgets a program's renderers provide, as `@versioned` declares its versions.
@@ -40,8 +40,10 @@ extern dec widgets(target: Namespace, widgets: Enum);
 /**
  * Render the property with a widget declared by `@UI.widgets`. On a property whose type is
  * a question with fields of its own, the widget applies to the group those fields lay out as.
+ * On a scalar or model, it is the widget every property of that type renders with unless the
+ * property names its own; a scalar passes it to the scalars that extend it.
  */
-extern dec widget(target: ModelProperty, widget: EnumMember);
+extern dec widget(target: ModelProperty | Scalar | Model, widget: EnumMember);
 /** Render source-approved checkbox choices while preserving one encoded wire value. */
 extern dec encodedCheckboxGroup(
   target: ModelProperty,

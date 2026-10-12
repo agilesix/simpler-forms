@@ -47,7 +47,7 @@ export const $flatten = (ctx: Ctx, target: ModelProperty) =>
  */
 export const $label = (
   ctx: Ctx,
-  target: Model | Scalar | ModelProperty,
+  target: Model | Scalar | Enum | ModelProperty,
   text: string,
 ) => {
   set(ctx, stateKeys.label, target, text);
@@ -70,7 +70,7 @@ export const $widgets = (ctx: Ctx, target: Namespace, widgets: Enum) =>
  */
 export const $widget = (
   ctx: Ctx,
-  target: ModelProperty,
+  target: ModelProperty | Scalar | Model,
   widget: EnumMember,
 ) => {
   set(

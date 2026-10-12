@@ -70,6 +70,48 @@ describe("emitBlockUi", () => {
         "Other Department",
       ]);
     });
+
+    it("falls back to the label an enum declares", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.label("Role")
+          enum Role { lead, member }
+          ${formMeta("roles")}
+          model Roles {
+            role?: Role;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]?.label).toEqual("Role");
+    });
+  });
+
+  describe("a property's widget", () => {
+    it("falls back to the widget its type, or a scalar it extends, declares", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.widgets(Widget)
+          namespace Rendering {
+            enum Widget { Attachment, Text }
+          }
+          @UI.widget(Rendering.Widget.Attachment)
+          scalar File extends string;
+          scalar Sketch extends File;
+          ${formMeta("files")}
+          model Files {
+            sketch?: Sketch;
+            @UI.widget(Rendering.Widget.Text)
+            note?: File;
+          }
+        `),
+      );
+
+      expect(ui.elements?.map((node) => node.options?.widget)).toEqual([
+        "Attachment",
+        "Text",
+      ]);
+    });
   });
 
   describe("a model the form declares itself", () => {

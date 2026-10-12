@@ -199,16 +199,32 @@ export function allBlocks(program: Program): Block[] {
   return out;
 }
 
-/** A property's label: its own `@UI.label`, else the one its scalar or model type declares. */
+/** A property's label: its own `@UI.label`, else the one its scalar, model or enum type declares. */
 export const propLabel = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.label, prop) ??
-    (prop.type.kind === "Scalar" || prop.type.kind === "Model"
+    (prop.type.kind === "Scalar" ||
+    prop.type.kind === "Model" ||
+    prop.type.kind === "Enum"
       ? g(p, stateKeys.label, prop.type)
       : undefined)) as string | undefined;
 export const propHelpText = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.helpText, prop) as string | undefined;
-export const propWidget = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.widget, prop) as string | undefined;
+/** A property's widget: its own `@UI.widget`, else its type's, or a base scalar's. */
+export const propWidget = (p: Program, prop: ModelProperty) => {
+  const own = g(p, stateKeys.widget, prop) as string | undefined;
+  if (own) return own;
+  if (prop.type.kind === "Model")
+    return g(p, stateKeys.widget, prop.type) as string | undefined;
+  for (
+    let s = prop.type.kind === "Scalar" ? prop.type : undefined;
+    s;
+    s = s.baseScalar
+  ) {
+    const widget = g(p, stateKeys.widget, s) as string | undefined;
+    if (widget) return widget;
+  }
+  return undefined;
+};
 
 /** Every enum a namespace declares with `@UI.widgets`: the widgets the program provides. */
 export const declaredWidgetSets = (p: Program) =>
@@ -216,7 +232,10 @@ export const declaredWidgetSets = (p: Program) =>
 
 /** Each property given a `@UI.widget`, with the enum member it named. */
 export const widgetMembers = (p: Program) =>
-  p.stateMap(stateKeys.widgetMember) as Map<ModelProperty, EnumMember>;
+  p.stateMap(stateKeys.widgetMember) as Map<
+    ModelProperty | Scalar | Model,
+    EnumMember
+  >;
 export const propEncodedCheckboxGroup = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.encodedCheckboxGroup, prop) as
     Record<string, unknown> | undefined;
