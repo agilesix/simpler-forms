@@ -95,6 +95,24 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`In mapping ${"mapping"}, both ${"first"} and ${"second"} are linked to ${"target"}. Each target property takes its value from one source.`,
       },
     },
+    "mapping-from-unresolved": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} is filled from ${"source"}, which is not a field of ${"context"}, the field its parent is filled from.`,
+      },
+    },
+    "mapping-from-cardinality-mismatch": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} is ${"targetShape"} but ${"source"}, which fills it, is ${"sourceShape"}.`,
+      },
+    },
+    "mapping-from-wrapper": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} has no field of its own: it wraps fields of ${"context"}. Rules keyed by the response's properties cannot write an element with no property behind it, so its contents are left out.`,
+      },
+    },
     "widget-not-declared": {
       severity: "error",
       messages: {
@@ -277,6 +295,7 @@ export const $lib = createTypeSpecLibrary({
     mappingTargets: {},
     mappedTo: {},
     mappingPaths: {},
+    mappedFrom: {},
   },
 } as const);
 

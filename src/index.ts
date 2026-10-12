@@ -63,5 +63,6 @@ export const $decorators = {
     targets: d.$targets,
     to: d.$to,
     path: d.$path,
+    from: d.$from,
   },
 };

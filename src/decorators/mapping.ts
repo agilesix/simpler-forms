@@ -6,7 +6,11 @@ import type {
   Namespace,
 } from "@typespec/compiler";
 import { stateKeys } from "../lib.js";
-import type { MappingLink, MappingPathLink } from "../model.js";
+import type {
+  MappingFromLink,
+  MappingLink,
+  MappingPathLink,
+} from "../model.js";
 import { type Ctx, push, set } from "./shared.js";
 
 export const $targets = (ctx: Ctx, target: Namespace, targets: Enum) =>
@@ -40,3 +44,14 @@ export const $path = (
     sourcePath,
     mappedTo,
   } satisfies MappingPathLink);
+
+export const $from = (
+  ctx: Ctx,
+  target: Model | ModelProperty,
+  mapping: EnumMember,
+  source: Model | ModelProperty,
+) =>
+  push(ctx, stateKeys.mappedFrom, target, {
+    mapping,
+    source,
+  } satisfies MappingFromLink);

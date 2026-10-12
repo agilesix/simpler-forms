@@ -53,3 +53,19 @@ extern dec path(
   sourcePath: valueof string,
   mappedTo: ModelProperty
 );
+
+/**
+ * In mapping `mapping`, this target model or property takes its value from `source` -- the
+ * other direction from `@Mapping.to`, declared on the target instead of the form.
+ *
+ * On a target model, `source` is the form it is the target of, as `@UI.layout` names the
+ * form it presents. On a target property, `source` is the field it is filled from, relative
+ * to the field its parent is filled from; a property with none is structure, and its own
+ * properties are filled relative to its parent's field. Repeatable, so a target shared by
+ * several forms names the field each one fills it from.
+ */
+extern dec from(
+  target: Model | ModelProperty,
+  mapping: EnumMember,
+  source: Model | ModelProperty
+);

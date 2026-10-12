@@ -296,7 +296,7 @@ function resolveLink(
 }
 
 /** Whether a type is a list, and the object it holds (directly or as each entry), if any. */
-function shapeOf(type: Type): { array: boolean; object?: Model } {
+export function shapeOf(type: Type): { array: boolean; object?: Model } {
   if (type.kind !== "Model") return { array: false };
   if (isArrayModelType(type)) {
     const item = type.indexer!.value;

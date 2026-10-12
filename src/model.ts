@@ -229,6 +229,32 @@ export interface MappingPathLink {
   mappedTo: ModelProperty;
 }
 
+/** One `@Mapping.from`: in `mapping`, the decorated target takes its value from `source`. */
+export interface MappingFromLink {
+  mapping: EnumMember;
+  source: Model | ModelProperty;
+}
+
+/** Every `@Mapping.from` on each target model and property, in every mapping. */
+export const allMappingFromLinks = (p: Program) =>
+  p.stateMap(stateKeys.mappedFrom) as Map<
+    Model | ModelProperty,
+    MappingFromLink[]
+  >;
+
+/** The fields a target property is filled from in `mapping`, one per form that fills it. */
+export const propMappedFrom = (
+  p: Program,
+  prop: ModelProperty,
+  mapping: EnumMember,
+) =>
+  ((g(p, stateKeys.mappedFrom, prop) as MappingFromLink[] | undefined) ?? [])
+    .filter(
+      (link) =>
+        link.mapping === mapping && link.source.kind === "ModelProperty",
+    )
+    .map((link) => link.source as ModelProperty);
+
 /** Every enum a namespace declares with `@Mapping.targets`: the mappings the program produces. */
 export const declaredMappingSets = (p: Program) =>
   new Set(p.stateMap(stateKeys.mappingTargets).values() as Iterable<Enum>);

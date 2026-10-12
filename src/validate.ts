@@ -41,8 +41,10 @@ import {
   allMappingLinks,
   allMappingPathLinks,
   declaredMappingSets,
+  allMappingFromLinks,
 } from "./model.js";
 import { resolveMappingWithProblems } from "./mapping.js";
+import { resolveMappingFrom } from "./mapping-from.js";
 
 /**
  * Whole-program checks whose failure means the emitted artifacts would be wrong.
@@ -383,6 +385,21 @@ function checkMappings(program: Program): void {
       if (reported.has(key)) continue;
       reported.add(key);
       reportDiagnostic(program, problem);
+    }
+  }
+
+  for (const [target, links] of allMappingFromLinks(program)) {
+    for (const { mapping } of links) undeclared(target, mapping);
+    if (target.kind !== "Model") continue;
+    for (const { mapping, source } of links) {
+      if (source.kind !== "Model") continue;
+      for (const problem of resolveMappingFrom(program, source, mapping)
+        ?.problems ?? []) {
+        const key = JSON.stringify([problem.code, problem.message]);
+        if (reported.has(key)) continue;
+        reported.add(key);
+        program.reportDiagnostic(problem);
+      }
     }
   }
 }

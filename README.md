@@ -187,6 +187,28 @@ option, checks them against `mappingTargets`, and calls `resolveMapping` once pe
 member. Every link is checked as it resolves: against the model its parent maps to, against
 the target's type and cardinality, and against other sources landing on the same target.
 
+The same links can be declared from the other side, on the target, with `@Mapping.from`. The
+target model names the form it is the target of, as `@UI.layout` names the form it presents,
+and each target property names the field it is filled from, relative to the field its parent
+is filled from. A target shared by many forms is annotated once against the questions that
+fill it:
+
+```tsp
+model HumanName {
+  @Mapping.from(Mappings.Target.grantsGovXml, PersonName.firstName) firstName: string;
+}
+
+@Mapping.from(Mappings.Target.grantsGovXml, Forms.KeyContacts)
+model Root {
+  @Mapping.from(Mappings.Target.grantsGovXml, Forms.KeyContacts.contacts) contacts: Contact[];
+}
+```
+
+`resolveMappingFrom` resolves those links into the same tree `resolveMapping` does, so an
+emitter can read either. A target property with no `@Mapping.from` whose own properties are
+filled is a wrapper element; the tree, keyed by the form's properties, cannot hold one, so it
+is reported.
+
 ## License
 
 [MIT](./LICENSE.md). Copyright (c) 2026 Agile Six Applications, Inc.

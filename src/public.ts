@@ -103,8 +103,10 @@ export {
   modelMappedTo,
   propMappedTo,
   modelMappingPaths,
+  propMappedFrom,
   type MappingLink,
   type MappingPathLink,
+  type MappingFromLink,
 } from "./model.js";
 export {
   /** A model's mapping in one target, resolved through every model it composes. */
@@ -113,6 +115,11 @@ export {
   type MappingNode,
   type MappingNodeKind,
 } from "./mapping.js";
+export {
+  /** A form's mapping read from the `@Mapping.from` links on its target: the same tree. */
+  resolveMappingFrom,
+  mappedFromRoot,
+} from "./mapping-from.js";
 
 // --- property casing ------------------------------------------------------
 // A target emitter writing its own artifacts uses these to name properties as this one does.
