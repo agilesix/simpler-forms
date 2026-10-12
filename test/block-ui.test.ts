@@ -48,6 +48,30 @@ const spec = (body: string) => `
 `;
 
 describe("emitBlockUi", () => {
+  describe("a property's label", () => {
+    it("falls back to the label its question declares", async () => {
+      const ui = await formUi(
+        spec(`
+          /** A department. */
+          @Meta.question(#{ id: "organization/department" })
+          @UI.label("Department")
+          scalar Department extends string;
+          ${formMeta("departments")}
+          model Departments {
+            primary?: Department;
+            @UI.label("Other Department")
+            other?: Department;
+          }
+        `),
+      );
+
+      expect(ui.elements?.map((node) => node.label)).toEqual([
+        "Department",
+        "Other Department",
+      ]);
+    });
+  });
+
   describe("a model the form declares itself", () => {
     it("lays out its fields as a labelled Group, in @UI.order", async () => {
       const ui = await formUi(

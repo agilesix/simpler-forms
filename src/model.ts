@@ -199,8 +199,12 @@ export function allBlocks(program: Program): Block[] {
   return out;
 }
 
+/** A property's label: its own `@UI.label`, else the one its scalar or model type declares. */
 export const propLabel = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.label, prop) as string | undefined;
+  (g(p, stateKeys.label, prop) ??
+    (prop.type.kind === "Scalar" || prop.type.kind === "Model"
+      ? g(p, stateKeys.label, prop.type)
+      : undefined)) as string | undefined;
 export const propHelpText = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.helpText, prop) as string | undefined;
 export const propWidget = (p: Program, prop: ModelProperty) =>
