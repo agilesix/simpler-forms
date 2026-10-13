@@ -6,7 +6,7 @@ import { Tester, formMeta } from "./tester.js";
 /** Compile a specification and lay out the one form it declares. */
 const formUi = async (code: string): Promise<UiNode> => {
   const { program } = await Tester.compile(code);
-  const form = allBlocks(program).find((block) => block.kind === "form");
+  const form = allBlocks(program).find((block) => block.kind === "submission");
   if (!form) throw new Error("fixture declares no form");
   return emitBlockUi(program, form);
 };
@@ -48,6 +48,104 @@ const spec = (body: string) => `
 `;
 
 describe("emitBlockUi", () => {
+  describe("a property's label", () => {
+    it("falls back to the label its question declares", async () => {
+      const ui = await formUi(
+        spec(`
+          /** A department. */
+          @Meta.question(#{ id: "organization/department" })
+          @UI.label("Department")
+          scalar Department extends string;
+          ${formMeta("departments")}
+          model Departments {
+            primary?: Department;
+            @UI.label("Other Department")
+            other?: Department;
+          }
+        `),
+      );
+
+      expect(ui.elements?.map((node) => node.label)).toEqual([
+        "Department",
+        "Other Department",
+      ]);
+    });
+
+    it("falls back to the label an enum declares", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.label("Role")
+          enum Role { lead, member }
+          ${formMeta("roles")}
+          model Roles {
+            role?: Role;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]?.label).toEqual("Role");
+    });
+  });
+
+  describe("a property's widget", () => {
+    it("falls back to the widget its type, or a scalar it extends, declares", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.widgets(Widget)
+          namespace Rendering {
+            enum Widget { Attachment, Text }
+          }
+          @UI.widget(Rendering.Widget.Attachment)
+          scalar File extends string;
+          scalar Sketch extends File;
+          ${formMeta("files")}
+          model Files {
+            sketch?: Sketch;
+            @UI.widget(Rendering.Widget.Text)
+            note?: File;
+          }
+        `),
+      );
+
+      expect(ui.elements?.map((node) => node.options?.widget)).toEqual([
+        "Attachment",
+        "Text",
+      ]);
+    });
+  });
+
+  describe("a model the form declares itself", () => {
+    it("lays out its fields as a labelled Group, in @UI.order", async () => {
+      const ui = await formUi(
+        spec(`
+          @UI.order(Profile.role, Profile.contact)
+          model Profile {
+            contact?: QuestionContact;
+            role?: string;
+          }
+          ${formMeta("profiles")}
+          model Profiles {
+            /** The lead's profile. */
+            @UI.label("Lead")
+            lead: Profile;
+          }
+        `),
+      );
+
+      const lead = ui.elements?.[0];
+      expect(lead).toMatchObject({
+        type: "Group",
+        label: "Lead",
+        options: { description: "The lead's profile." },
+      });
+      expect(scopes(lead)).toEqual([
+        "#/properties/lead/properties/role",
+        "#/properties/lead/properties/contact/properties/name",
+        "#/properties/lead/properties/contact/properties/email",
+      ]);
+    });
+  });
+
   describe("a repeated property", () => {
     it("lays out each entry in options.detail, interleaving inherited fields in @UI.order", async () => {
       const ui = await formUi(
@@ -203,6 +301,40 @@ describe("emitBlockUi", () => {
       const list = ui.elements?.[0];
       expect(list?.options?.widget).toEqual("Collapsible");
       expect(list?.options?.detail).toBeDefined();
+    });
+  });
+
+  describe("a composed question", () => {
+    it("takes the property's label and doc comment, so each role is told apart (#7)", async () => {
+      const ui = await formUi(
+        spec(`
+          ${formMeta("roles")}
+          model Roles {
+            /** Individual authorized to accept payments. */
+            @UI.label("Payee")
+            payee?: QuestionContact;
+
+            manager?: QuestionContact;
+          }
+        `),
+      );
+
+      expect(ui.elements?.[0]).toMatchObject({
+        type: "Group",
+        label: "Payee",
+        options: { description: "Individual authorized to accept payments." },
+      });
+      // Without a label of its own, the property's group keeps the question's.
+      expect(ui.elements?.[1]?.label).toEqual("A person to contact.");
+      expect(ui.elements?.[1]?.options).toBeUndefined();
+    });
+
+    it("keeps its own label when laid out standalone", async () => {
+      const { program } = await Tester.compile(spec(""));
+      const question = allBlocks(program).find((b) => b.id === "poc/contact")!;
+      expect(emitBlockUi(program, question).label).toEqual(
+        "A person to contact.",
+      );
     });
   });
 

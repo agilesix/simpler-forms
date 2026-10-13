@@ -251,12 +251,10 @@ describe("$onValidate", () => {
             @Validation.computedFrom(Op.Sum, "/periods[*].amunt")
             total?: Money;
           }
-          enum Section { only: "Only" }
           ${formMeta("path-check")}
-          @UI.sections(Section)
           model PathCheck {
-            @UI.section(Section.only) periods?: Period[];
-            @UI.section(Section.only) summary?: Summary;
+            periods?: Period[];
+            summary?: Summary;
           }
         `),
       );
@@ -279,12 +277,10 @@ describe("$onValidate", () => {
               @Validation.computedFrom(Op.Sum, "/periods[*].amount")
               total?: Money;
             }
-            enum Section { only: "Only" }
             ${formMeta("path-check")}
-            @UI.sections(Section)
             model PathCheck {
-              @UI.section(Section.only) periods?: Period[];
-              @UI.section(Section.only) summary?: Summary;
+              periods?: Period[];
+              summary?: Summary;
             }
           `),
         ),
@@ -553,17 +549,13 @@ describe("$onValidate", () => {
     it("rejects a misspelled nested condition path", async () => {
       const diagnostics = await Tester.diagnose(
         form(`
-          enum Section { only: "Only" }
           enum Choice { yes: "Yes", no: "No" }
           model Details { choice: Choice; }
 
           ${formMeta("nested-condition")}
-          @UI.sections(Section)
           model NestedCondition {
-            @UI.section(Section.only)
             details: Details;
 
-            @UI.section(Section.only)
             @Validation.requiredWhenPath("details.choce", Choice.yes)
             explanation?: string;
           }
@@ -578,17 +570,13 @@ describe("$onValidate", () => {
       expectDiagnosticEmpty(
         await Tester.diagnose(
           form(`
-            enum Section { only: "Only" }
             enum Choice { yes: "Yes", no: "No" }
             model Details { choice: Choice; }
 
             ${formMeta("nested-condition")}
-            @UI.sections(Section)
             model NestedCondition {
-              @UI.section(Section.only)
               details: Details;
 
-              @UI.section(Section.only)
               @Validation.requiredWhenPath("details.choice", Choice.yes)
               explanation?: string;
             }
@@ -645,17 +633,13 @@ describe("$onValidate", () => {
     it("rejects a field that is always required but only sometimes visible", async () => {
       const diagnostics = await Tester.diagnose(
         form(`
-          enum Section { only: "Only" }
           enum Choice { yes: "Yes", no: "No" }
 
           /** A form. */
           ${formMeta("contradiction")}
-          @UI.sections(Section)
           model Contradiction {
-            @UI.section(Section.only)
             choice: Choice;
 
-            @UI.section(Section.only)
             @UI.visibleWhen(Contradiction.choice, Choice.yes)
             explanation: string;
           }
@@ -670,17 +654,13 @@ describe("$onValidate", () => {
       expectDiagnosticEmpty(
         await Tester.diagnose(
           form(`
-            enum Section { only: "Only" }
             enum Choice { yes: "Yes", no: "No" }
 
             /** A form. */
             ${formMeta("consistent")}
-            @UI.sections(Section)
             model Consistent {
-              @UI.section(Section.only)
               choice: Choice;
 
-              @UI.section(Section.only)
               @UI.visibleWhen(Consistent.choice, Choice.yes)
               @Validation.requiredWhen(Consistent.choice, Choice.yes)
               explanation?: string;
@@ -726,174 +706,6 @@ describe("$onValidate", () => {
           `),
         ),
       );
-    });
-  });
-
-  describe("section-orphan", () => {
-    it("rejects a field in no section", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          enum Section { only: "Only" }
-
-          /** A form. */
-          ${formMeta("orphan")}
-          @UI.sections(Section)
-          model Orphan {
-            @UI.section(Section.only)
-            placed: string;
-
-            unplaced: string;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/section-orphan",
-      });
-    });
-
-    it("accepts a field deliberately omitted from the UI", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            enum Section { only: "Only" }
-
-            /** A form. */
-            ${formMeta("omitted")}
-            @UI.sections(Section)
-            model Omitted {
-              @UI.section(Section.only)
-              placed: string;
-
-              @UI.omit
-              hidden?: string;
-            }
-          `),
-        ),
-      );
-    });
-
-    it("accepts an inherited field assigned by a form-local section override", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            enum Section { only: "Only" }
-
-            /** A reusable question. */
-            @Meta.question(#{ id: "shared/answer" })
-            @Meta.tag(TagName.details)
-            model SharedAnswer { answer: string; }
-
-            /** A form. */
-            ${formMeta("override-section")}
-            @UI.sections(Section)
-            @UI.overrides(#{ answer: #{ section: "only", readOnly: true, visibleReadOnly: true } })
-            model OverrideSection extends SharedAnswer {}
-          `),
-        ),
-      );
-    });
-
-    it("rejects visible read-only rendering without a read-only schema occurrence", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          enum Section { only: "Only" }
-
-          /** A form. */
-          ${formMeta("unsafe-visible-read-only")}
-          @UI.sections(Section)
-          @UI.overrides(#{ answer: #{ section: "only", visibleReadOnly: true } })
-          model UnsafeVisibleReadOnly { answer: string; }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/visible-read-only-without-read-only",
-      });
-    });
-  });
-
-  describe("override-path-unresolved", () => {
-    it("rejects an override addressing a property that does not exist", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          enum Section { only: "Only" }
-
-          /** An address. */
-          @Meta.question(#{ id: "generics/address" })
-          @Meta.tag(TagName.address)
-          model Address {
-            city: string;
-          }
-
-          /** A form. */
-          ${formMeta("typo")}
-          @UI.sections(Section)
-          @UI.overrides(#{ \`applicant.citty\`: #{ omit: true } })
-          model Typo {
-            @UI.section(Section.only)
-            applicant: Address;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/override-path-unresolved",
-      });
-    });
-
-    it("accepts an override that resolves", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            enum Section { only: "Only" }
-
-            /** An address. */
-            @Meta.question(#{ id: "generics/address" })
-            @Meta.tag(TagName.address)
-            model Address {
-              city: string;
-            }
-
-            /** A form. */
-            ${formMeta("resolves")}
-            @UI.sections(Section)
-            @UI.overrides(#{ \`applicant.city\`: #{ omit: true } })
-            model Resolves {
-              @UI.section(Section.only)
-              applicant: Address;
-            }
-          `),
-        ),
-      );
-    });
-
-    it("rejects an enabledWhen override whose source path does not resolve", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          enum Section { only: "Only" }
-
-          /** An address. */
-          @Meta.question(#{ id: "generics/address" })
-          @Meta.tag(TagName.address)
-          model Address {
-            city: string;
-          }
-
-          /** A form. */
-          ${formMeta("bad-behavior-source")}
-          @UI.sections(Section)
-          @UI.overrides(#{
-            \`applicant.city\`: #{
-              enabledWhen: #{ path: "applicant.citty", equals: "Boston" }
-            }
-          })
-          model BadBehaviorSource {
-            @UI.section(Section.only)
-            applicant: Address;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/override-path-unresolved",
-      });
     });
   });
 

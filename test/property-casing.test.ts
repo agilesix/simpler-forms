@@ -250,3 +250,27 @@ describe("string paths under snake casing", () => {
     });
   });
 });
+
+describe("@Validation.requiredPaths on a model", () => {
+  it("adds to what the model already requires", async () => {
+    const read = await emit(`
+      import "simpler-forms";
+      import "@typespec/json-schema";
+      using SimplerForms;
+      @JsonSchema.jsonSchema
+      namespace QuestionBank {
+        /** A person to contact. */
+        @Meta.question(#{ id: "person/contact" })
+        model Contact { name: string; phone: string; email?: string; }
+
+        /** A contact whose email is required too. */
+        @Meta.question(#{ id: "person/contact/emailed" })
+        @Validation.requiredPaths("email")
+        model EmailedContact { ...Contact; role: string; }
+      }
+    `);
+    expect(
+      read("question-bank/person/contact/emailed/schema.json").required,
+    ).toEqual(["name", "phone", "role", "email"]);
+  });
+});

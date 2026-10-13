@@ -14,6 +14,7 @@ import {
   getMaxItems,
   getMinItems,
 } from "@typespec/compiler";
+import type { Node } from "@typespec/compiler/ast";
 import { stateKeys } from "./lib.js";
 
 interface ConditionBase {
@@ -86,7 +87,7 @@ export type Condition = AtomicCondition | AnyCondition;
 export interface Block {
   /** A Model for object-valued blocks, a Scalar for single-value questions. */
   model: Model | Scalar;
-  kind: "question" | "form";
+  kind: "question" | "submission";
   /** True when the block is a single value rather than an object. */
   scalar: boolean;
   id: string;
@@ -97,9 +98,7 @@ export interface Block {
   responseRole?: ResponseRole;
   label?: string;
   doc?: string;
-  sections?: Enum;
   order?: string[];
-  overrides: Record<string, Record<string, unknown>>;
 }
 
 export type ResponseRole =
@@ -129,13 +128,13 @@ export function readBlock(
 ): Block | undefined {
   const q = g(program, stateKeys.questionMeta, model) as
     Record<string, unknown> | undefined;
-  const f = g(program, stateKeys.formMeta, model) as
+  const s = g(program, stateKeys.submissionMeta, model) as
     Record<string, unknown> | undefined;
-  if (!q && !f) return undefined;
-  const meta = (q ?? f)!;
+  if (!q && !s) return undefined;
+  const meta = (q ?? s)!;
   return {
     model,
-    kind: q ? "question" : "form",
+    kind: q ? "question" : "submission",
     scalar: model.kind === "Scalar",
     id: String(meta.id),
     meta,
@@ -147,15 +146,41 @@ export function readBlock(
       ResponseRole | undefined,
     label: g(program, stateKeys.label, model) as string | undefined,
     doc: getDoc(program, model),
-    sections: g(program, stateKeys.sections, model) as Enum | undefined,
     order: g(program, stateKeys.order, model) as string[] | undefined,
-    overrides:
-      (g(program, stateKeys.overrides, model) as Record<
-        string,
-        Record<string, unknown>
-      >) ?? {},
   };
 }
+
+/** One presentation an applicant opens, from `@Meta.form`. */
+export interface FormMeta {
+  /** Absent when the form presents its own model, whose submission id it then takes. */
+  id?: string;
+  formName: string;
+  revision?: string;
+}
+
+/** `@Meta.form` on a model, if it has one. */
+export const modelFormMeta = (p: Program, model: Model) =>
+  g(p, stateKeys.presentationMeta, model) as FormMeta | undefined;
+
+/** Every model with `@Meta.form`, in the order the decorators ran. */
+export const allFormMetas = (p: Program) =>
+  p.stateMap(stateKeys.presentationMeta) as Map<Model, FormMeta>;
+
+/** Every `@UI.layout` model, with the model it presents. */
+export const allLayouts = (p: Program) =>
+  p.stateMap(stateKeys.layout) as Map<Model, Model>;
+
+/** A `@UI.field` on a layout entry: the field it lays out, and the reference's syntax. */
+export interface LayoutFieldRef {
+  field: ModelProperty;
+  node: Node;
+}
+
+export const entryField = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.layoutField, prop) as LayoutFieldRef | undefined;
+
+export const propFlatten = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.flatten, prop) === true;
 
 /** All blocks in the program, in declaration order. */
 export function allBlocks(program: Program): Block[] {
@@ -174,12 +199,32 @@ export function allBlocks(program: Program): Block[] {
   return out;
 }
 
+/** A property's label: its own `@UI.label`, else the one its scalar, model or enum type declares. */
 export const propLabel = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.label, prop) as string | undefined;
+  (g(p, stateKeys.label, prop) ??
+    (prop.type.kind === "Scalar" ||
+    prop.type.kind === "Model" ||
+    prop.type.kind === "Enum"
+      ? g(p, stateKeys.label, prop.type)
+      : undefined)) as string | undefined;
 export const propHelpText = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.helpText, prop) as string | undefined;
-export const propWidget = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.widget, prop) as string | undefined;
+/** A property's widget: its own `@UI.widget`, else its type's, or a base scalar's. */
+export const propWidget = (p: Program, prop: ModelProperty) => {
+  const own = g(p, stateKeys.widget, prop) as string | undefined;
+  if (own) return own;
+  if (prop.type.kind === "Model")
+    return g(p, stateKeys.widget, prop.type) as string | undefined;
+  for (
+    let s = prop.type.kind === "Scalar" ? prop.type : undefined;
+    s;
+    s = s.baseScalar
+  ) {
+    const widget = g(p, stateKeys.widget, s) as string | undefined;
+    if (widget) return widget;
+  }
+  return undefined;
+};
 
 /** Every enum a namespace declares with `@UI.widgets`: the widgets the program provides. */
 export const declaredWidgetSets = (p: Program) =>
@@ -187,12 +232,13 @@ export const declaredWidgetSets = (p: Program) =>
 
 /** Each property given a `@UI.widget`, with the enum member it named. */
 export const widgetMembers = (p: Program) =>
-  p.stateMap(stateKeys.widgetMember) as Map<ModelProperty, EnumMember>;
+  p.stateMap(stateKeys.widgetMember) as Map<
+    ModelProperty | Scalar | Model,
+    EnumMember
+  >;
 export const propEncodedCheckboxGroup = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.encodedCheckboxGroup, prop) as
     Record<string, unknown> | undefined;
-export const propSection = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.section, prop) as { name: string; label?: string } | undefined;
 export const propReadOnly = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.readOnly, prop) === true;
 export const propResponseRole = (p: Program, prop: ModelProperty) =>
@@ -383,26 +429,6 @@ export const modelLabel = (p: Program, model: Model) =>
 export const modelOrder = (p: Program, model: Model) =>
   g(p, stateKeys.order, model) as string[] | undefined;
 
-/**
- * `@UI.overrides` for any model, block or not, keyed by dotted path relative to that model.
- *
- * A block's own table also reaches emitters through `Block.overrides`. This accessor exists
- * for the other case: a form-local model composed by a form, whose overrides describe the
- * thing being composed rather than one occurrence of it. A form asking for the same contact
- * four times states such an override once, and an emitter rebases it onto each occurrence.
- */
-export const modelOverrides = (p: Program, model: Model) =>
-  (g(p, stateKeys.overrides, model) as Record<
-    string,
-    Record<string, unknown>
-  >) ?? {};
-
-export const propOverrides = (p: Program, prop: ModelProperty) =>
-  (g(p, stateKeys.overrides, prop) as Record<
-    string,
-    Record<string, unknown>
-  >) ?? {};
-
 /** Own and inherited properties in declaration order, with the derived declaration winning. */
 export function modelProperties(model: Model): ModelProperty[] {
   const chain: Model[] = [];
@@ -424,12 +450,12 @@ export function modelProperties(model: Model): ModelProperty[] {
 /** Properties in @UI.order if given, else declaration order; omitted ones dropped. */
 export function orderedProps(program: Program, block: Block): ModelProperty[] {
   if (block.model.kind !== "Model") return [];
-  // A form may extend a question to preserve flat response fields with explicit semantic
-  // lineage. Its inherited fields remain form members for sectioning and presentation.
+  // A submission may extend a question to preserve flat response fields with explicit semantic
+  // lineage. Its inherited fields remain its members for presentation.
   // Question artifacts themselves keep their local surface and compose their base through
   // JSON Schema `allOf`, so walking inherited properties there would duplicate that surface.
   const candidates =
-    block.kind === "form"
+    block.kind === "submission"
       ? modelProperties(block.model)
       : [...block.model.properties.values()];
   const props = candidates.filter((p) => !propOmit(program, p));

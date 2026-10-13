@@ -13,14 +13,15 @@ export * from "./public.js";
 export const $decorators = {
   "SimplerForms.Meta": {
     question: d.$question,
+    submission: d.$submission,
     form: d.$form,
     tag: d.$tag,
     role: d.$role,
   },
   "SimplerForms.UI": {
-    sections: d.$sections,
-    section: d.$section,
-    overrides: d.$overrides,
+    layout: d.$layout,
+    field: d.$field,
+    flatten: d.$flatten,
     label: d.$label,
     helpText: d.$helpText,
     widgets: d.$widgets,

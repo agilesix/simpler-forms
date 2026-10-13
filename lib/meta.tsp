@@ -14,7 +14,16 @@ namespace SimplerForms.Meta;
  */
 extern dec question(target: Model | Scalar, meta: valueof QuestionMeta);
 
-/** A form's identity, lifecycle, and the paper form it mirrors. */
+/**
+ * The data a form collects and submits. Publishes the model's JSON Schema, and is what
+ * its XML mapping, validation and Grants.gov identity hang off.
+ */
+extern dec submission(target: Model, meta: valueof SubmissionMeta);
+
+/**
+ * A presentation an applicant opens. Goes on a submission model that is its own layout,
+ * or on a `@UI.layout` model presenting another model's submission.
+ */
 extern dec form(target: Model, meta: valueof FormMeta);
 
 /**

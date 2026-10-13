@@ -8,26 +8,29 @@ using TypeSpec.Reflection;
 
 namespace SimplerForms.UI;
 
-/** Declare the ordered section set for a block. */
-extern dec sections(target: Model, sections: Enum);
-
-/** Assign a property (and everything under it) to one section. */
-extern dec section(target: ModelProperty, section: valueof EnumMember);
+/**
+ * This model is a presentation of `form`. Its properties are sections, in order.
+ *
+ * A property inside a section is one of three things. A field reference
+ * (`payee: Form.payee;`) places that field as its model lays it out. A model with
+ * `@UI.field` places that field with the changes it lists. A model without `@UI.field` is a
+ * new group of only what it lists.
+ */
+extern dec layout(target: Model, form: Model);
 
 /**
- * Form-scoped override table, keyed by dotted path relative to the target.
- * Presentation keys stay local to the form. `enabledWhen` may name an exact sibling/root
- * response path and equality value when a form applies behavior to a shared question.
- * `visibleReadOnly: true` is valid only with `readOnly: true`: it renders a visible control
- * backed by a read-only JSON Schema occurrence. Plain `readOnly` retains the target's historic
- * hidden/null behavior for technical identifiers.
+ * Lay out one field's contents here. Entries inside are relative to the field's type, or
+ * its item type for a list. The field's unlisted children follow in their declared order.
  */
-extern dec overrides(
-  target: Model | ModelProperty,
-  patch: valueof Record<unknown>
-);
+extern dec field(target: ModelProperty, field: ModelProperty);
 
-extern dec label(target: Model | Scalar | ModelProperty, text: valueof string);
+/** Place the referenced field's children here instead of as a group of their own. */
+extern dec flatten(target: ModelProperty);
+
+extern dec label(
+  target: Model | Scalar | Enum | ModelProperty,
+  text: valueof string
+);
 extern dec helpText(target: ModelProperty, text: valueof string);
 /**
  * Declare the widgets a program's renderers provide, as `@versioned` declares its versions.
@@ -40,8 +43,10 @@ extern dec widgets(target: Namespace, widgets: Enum);
 /**
  * Render the property with a widget declared by `@UI.widgets`. On a property whose type is
  * a question with fields of its own, the widget applies to the group those fields lay out as.
+ * On a scalar or model, it is the widget every property of that type renders with unless the
+ * property names its own; a scalar passes it to the scalars that extend it.
  */
-extern dec widget(target: ModelProperty, widget: EnumMember);
+extern dec widget(target: ModelProperty | Scalar | Model, widget: EnumMember);
 /** Render source-approved checkbox choices while preserving one encoded wire value. */
 extern dec encodedCheckboxGroup(
   target: ModelProperty,

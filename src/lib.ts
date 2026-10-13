@@ -38,7 +38,115 @@ export const $lib = createTypeSpecLibrary({
     "form-scoped-question-id": {
       severity: "error",
       messages: {
-        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; put form deltas in @UI.overrides.`,
+        default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; present a question differently in one form with that form's @UI.layout.`,
+      },
+    },
+    "layout-form-without-submission": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has @Meta.form but no @Meta.submission, and is not a @UI.layout of a model that has one.`,
+        layout: paramMessage`${"name"} presents ${"presented"}, which has no @Meta.submission. A form needs a submission to publish.`,
+      },
+    },
+    "layout-form-id": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} presents ${"submission"} and needs its own id: give its @Meta.form an id.`,
+      },
+    },
+    "layout-ref-root": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"ref"} starts from ${"root"}, but entries here lay out ${"here"}. Start it from ${"start"}, or from ${"presented"} for a path from the form.`,
+        list: paramMessage`${"ref"} is outside the list ${"list"}, whose entries are laid out here. Place it outside that list's @UI.field.`,
+      },
+    },
+    "layout-entry-invalid": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Layout entry ${"name"} is neither a field reference nor a model of entries. Give it a field as its type, e.g. \`${"name"}: Form.${"name"}\`, or a model of entries.`,
+      },
+    },
+    "layout-unplaced": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"presented"}.${"field"} is not placed in any section of ${"layout"}. Place it, or @UI.omit it.`,
+        partial: paramMessage`Only ${"parts"} of ${"presented"}.${"field"} is placed in ${"layout"}. Place the field itself, or lay out the rest of it with @UI.field.`,
+      },
+    },
+    "layout-placed-twice": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"path"} is placed twice in ${"layout"}.`,
+      },
+    },
+    "layout-section-not-group": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Top-level entries of ${"layout"} are sections. Give ${"name"} a model of entries, with @UI.field to lay out one field's contents.`,
+      },
+    },
+    "layout-validation": {
+      severity: "error",
+      messages: {
+        default: paramMessage`@Validation.${"decorator"} on layout entry ${"name"} would make validity depend on the presentation. Declare it on ${"presented"}, which every layout of it shares.`,
+      },
+    },
+    "layout-condition-self": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"}'s condition reads ${"source"}, which is inside the field it controls.`,
+      },
+    },
+    "layout-condition-count": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has ${"count"} display conditions; an entry takes one.`,
+      },
+    },
+    "layout-duplicate-label": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Two entries in ${"where"} render as "${"label"}" (${"first"} and ${"second"}).`,
+      },
+    },
+    "layout-entry-name": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`${"name"} places ${"path"}. Name it for the field (${"field"}) or for a step on its path.`,
+      },
+    },
+    "layout-flatten-leaf": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`${"name"} has no fields of its own to flatten.`,
+      },
+    },
+    "layout-condition-hides-required": {
+      severity: "warning",
+      messages: {
+        always: paramMessage`${"name"} is always required, but "${"condition"}" can hide or disable it.`,
+        narrower: paramMessage`${"name"} is required when ${"required"}, but this layout makes it usable only when ${"condition"}.`,
+        inverted: paramMessage`${"name"} is required when ${"condition"}, which is exactly when this layout hides or disables it.`,
+        default: paramMessage`${"name"} can be hidden while it is required.`,
+      },
+    },
+    "layout-condition-source-omitted": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`${"name"} waits on ${"source"}, which this layout omits, so an applicant can never answer it.`,
+      },
+    },
+    "layout-condition-replaces": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`${"name"}'s condition replaces the one ${"field"} declares itself. Restate that condition here if both should hold.`,
+      },
+    },
+    "layout-form-id-duplicate": {
+      severity: "error",
+      messages: {
+        default: paramMessage`Form id "${"id"}" is published by both ${"first"} and ${"second"}; give one of them another id.`,
       },
     },
     "duplicate-block-id": {
@@ -221,18 +329,6 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"name"} is always required but only sometimes visible, so an applicant can be blocked by a field they cannot see. Make it optional and use @Validation.requiredWhen, or drop the visibility condition.`,
       },
     },
-    "override-path-unresolved": {
-      severity: "error",
-      messages: {
-        default: paramMessage`@UI.overrides path "${"path"}" does not resolve: ${"reason"}.`,
-      },
-    },
-    "visible-read-only-without-read-only": {
-      severity: "error",
-      messages: {
-        default: paramMessage`@UI.overrides path "${"path"}" requests visibleReadOnly without readOnly. A visible read-only control must also be marked readOnly so schema and UI cannot disagree.`,
-      },
-    },
     "property-casing-collision": {
       severity: "error",
       messages: {
@@ -245,19 +341,17 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"property"} would be emitted as "${"name"}", but ${"other"} as "${"otherName"}". A property name is emitted the same way everywhere, so give both the same @encodedName.`,
       },
     },
-    "section-orphan": {
-      severity: "error",
-      messages: {
-        default: paramMessage`${"name"} is in no section, so it renders nowhere. Give it a @UI.section, or @UI.omit it if that is deliberate.`,
-      },
-    },
   },
   emitter: {
     options: EmitterOptionsSchema,
   },
   state: {
     questionMeta: {},
-    formMeta: {},
+    submissionMeta: {},
+    presentationMeta: {},
+    layout: {},
+    layoutField: {},
+    flatten: {},
     tags: {},
     entity: {},
     responseRole: {},
@@ -267,10 +361,7 @@ export const $lib = createTypeSpecLibrary({
     widget: {},
     widgetMember: {},
     encodedCheckboxGroup: {},
-    sections: {},
-    section: {},
     order: {},
-    overrides: {},
     readOnly: {},
     omit: {},
     visibleWhen: {},

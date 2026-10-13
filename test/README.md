@@ -4,14 +4,17 @@
 strings through `createTester` and assert on what this library produces. No test here
 reads a file from disk or depends on any particular corpus of forms.
 
-| File                      | Lines | What it covers                                              |
-| ------------------------- | ----: | ----------------------------------------------------------- |
-| `validate.test.ts`        |   885 | Every `$onValidate` diagnostic                              |
-| `linter.test.ts`          |   410 | Every lint rule, via `createLinterRuleTester`               |
-| `mapping.test.ts`         |   380 | `resolveMapping`, and every `@Mapping.*` diagnostic         |
-| `mapping-from.test.ts`    |   176 | `resolveMappingFrom`: `@Mapping.from` on the target         |
-| `property-casing.test.ts` |   231 | The `property-casing` emitter option, end to end            |
-| `tester.ts`               |    39 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()` |
+| File                      | Lines | What it covers                                               |
+| ------------------------- | ----: | ------------------------------------------------------------ |
+| `validate.test.ts`        |   745 | Every `$onValidate` diagnostic                               |
+| `linter.test.ts`          |   338 | Every lint rule, via `createLinterRuleTester`                |
+| `mapping.test.ts`         |   380 | `resolveMapping`, and every `@Mapping.*` diagnostic          |
+| `mapping-from.test.ts`    |   176 | `resolveMappingFrom`: `@Mapping.from` on the target          |
+| `property-casing.test.ts` |   252 | The `property-casing` emitter option, end to end             |
+| `forms.test.ts`           |   152 | `@Meta.submission` and `@Meta.form`, and what each publishes |
+| `layout.test.ts`          |   783 | `@UI.layout` entries, references, conditions and diagnostics |
+| `block-ui.test.ts`        |   260 | A form's own presentation in `ui.json`                       |
+| `tester.ts`               |    45 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()`  |
 
 ## Tests that were not brought over, and why
 

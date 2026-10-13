@@ -7,19 +7,16 @@ import {
   childBlock,
   modelLabel,
   modelOrder,
-  modelOverrides,
   modelProperties,
   propEnabledWhen,
   propLabel,
   propOmit,
   propReadOnly,
   propReadOnlyWhen,
-  propSection,
   propVisibleWhen,
   propWidget,
   readBlock,
 } from "../model.js";
-import { normalizedOverrideEnabledWhen } from "./override-condition.js";
 
 /** An answered value: not null, not blank, not an empty list. */
 const answeredSchema = {
@@ -54,7 +51,9 @@ const rootConditionSchema = (
   return schema;
 };
 
-const jsonFormsCondition = (condition: Condition): Record<string, unknown> =>
+export const jsonFormsCondition = (
+  condition: Condition,
+): Record<string, unknown> =>
   condition.operator === "any"
     ? {
         scope: "#",
@@ -78,56 +77,6 @@ export interface UiNode {
   options?: Record<string, unknown>;
   rule?: Record<string, unknown>;
 }
-
-type Overrides = Record<string, Record<string, unknown>>;
-
-/** Convert a canonical JSON Forms scope into the dotted path addressed by @UI.overrides. */
-const dataPathFromScope = (scope: string): string | undefined => {
-  if (!scope.startsWith("#/properties/")) return undefined;
-  const tokens = scope.slice(2).split("/");
-  const path: string[] = [];
-  for (let index = 0; index < tokens.length;) {
-    if (tokens[index] !== "properties" || !tokens[index + 1]) return undefined;
-    path.push(tokens[index + 1]);
-    index += 2;
-    if (tokens[index] === "items") index += 1;
-  }
-  return path.join(".");
-};
-
-/** Emit the portable JSON Forms equivalent of a form-scoped enabledWhen override. */
-const overrideEnabledRule = (
-  override: Record<string, unknown>,
-): Record<string, unknown> | undefined => {
-  const condition = normalizedOverrideEnabledWhen(override);
-  if (!condition) return undefined;
-  const scope = `#/${condition.sourcePath.map((step) => `properties/${step}`).join("/")}`;
-  const schema =
-    condition.operator === "in"
-      ? { enum: condition.values }
-      : { const: condition.value };
-  return { effect: "ENABLE", condition: { scope, schema } };
-};
-
-/** Apply occurrence-specific behavior after recursively composing canonical child UI trees. */
-const applyOverrides = (node: UiNode, overrides: Overrides): UiNode => {
-  const out: UiNode = { ...node };
-  if (typeof node.scope === "string") {
-    const path = dataPathFromScope(node.scope);
-    const rule = path ? overrideEnabledRule(overrides[path] ?? {}) : undefined;
-    if (rule && node.rule) {
-      throw new Error(
-        `@UI.overrides enabledWhen collides with intrinsic UI behavior at ${path}`,
-      );
-    }
-    if (rule) out.rule = rule;
-  }
-  if (node.elements)
-    out.elements = node.elements.map((child) =>
-      applyOverrides(child, overrides),
-    );
-  return out;
-};
 
 /** Re-prefix every Control scope so a child's tree sits under `propName`. */
 export function rescopeUi(node: UiNode, propName: string): UiNode {
@@ -187,19 +136,15 @@ function layoutProps(program: Program, model: Model): ModelProperty[] {
 }
 
 /** What laying out a model needs, which a block has and a form-local model can supply. */
-type LayoutSource = Pick<
-  Block,
-  "model" | "scalar" | "label" | "doc" | "sections" | "overrides"
->;
+type LayoutSource = Pick<Block, "model" | "scalar" | "label" | "doc">;
 
 /** A model laid out as a block would be, whether or not it is one. */
-const layoutSource = (program: Program, model: Model): LayoutSource =>
+export const layoutSource = (program: Program, model: Model): LayoutSource =>
   readBlock(program, model) ?? {
     model,
     scalar: false,
     label: modelLabel(program, model),
     doc: getDoc(program, model),
-    overrides: modelOverrides(program, model),
   };
 
 /**
@@ -219,6 +164,87 @@ function itemDetail(program: Program, prop: ModelProperty): UiNode | undefined {
   return emitBlockUi(program, layoutSource(program, item));
 }
 
+/** The model a property's fields lay out from: a composed question, or a model of the form's own. */
+function fieldSource(
+  program: Program,
+  prop: ModelProperty,
+): LayoutSource | undefined {
+  const child = childBlock(program, prop);
+  if (child) return child.scalar ? undefined : child;
+  const type = prop.type;
+  if (type.kind !== "Model" || type.indexer) return undefined;
+  return layoutSource(program, type);
+}
+
+/**
+ * One property as its model lays it out, scoped to that model: a Group of a composed
+ * question's fields, or of a model the form declares itself, or a Control.
+ *
+ * A Group takes the property's label before the question's, and the property's doc comment
+ * as its description, so a question asked in several roles is told apart by role.
+ */
+export function propertyUi(program: Program, prop: ModelProperty): UiNode {
+  const child = fieldSource(program, prop);
+  if (child) {
+    const group = rescopeUi(emitBlockUi(program, child), prop.name);
+    const label = propLabel(program, prop);
+    if (label) group.label = label;
+    const description = getDoc(program, prop);
+    const widget = propWidget(program, prop);
+    if (description || widget)
+      group.options = {
+        ...(group.options ?? {}),
+        ...(description ? { description } : {}),
+        ...(widget ? { widget } : {}),
+      };
+    return group;
+  }
+
+  const node: UiNode = {
+    type: "Control",
+    scope: `#/properties/${prop.name}`,
+  };
+  const label = propLabel(program, prop);
+  if (label) node.label = label;
+
+  const detail = itemDetail(program, prop);
+  if (detail) node.options = { ...(node.options ?? {}), detail };
+
+  const widget = propWidget(program, prop);
+  if (widget) node.options = { ...(node.options ?? {}), widget };
+  if (propReadOnly(program, prop))
+    node.options = { ...(node.options ?? {}), readonly: true };
+
+  const conds = propVisibleWhen(program, prop);
+  if (conds.length === 1) {
+    const c = conds[0];
+    node.rule = {
+      effect: "SHOW",
+      condition: jsonFormsCondition(c),
+    };
+  } else {
+    const enabled = propEnabledWhen(program, prop);
+    if (enabled.length === 1) {
+      const c = enabled[0];
+      node.rule = {
+        effect: "ENABLE",
+        condition: jsonFormsCondition(c),
+      };
+    } else {
+      const readOnly = propReadOnlyWhen(program, prop);
+      if (readOnly.length === 1) {
+        const c = readOnly[0];
+        node.rule = {
+          effect: "DISABLE",
+          condition: jsonFormsCondition(c),
+        };
+      }
+    }
+  }
+
+  return node;
+}
+
 /**
  * The canonical UI artifact for one block. Scopes are relative to this block's own
  * root, so it renders standalone; children are incorporated and re-scoped.
@@ -231,96 +257,14 @@ export function emitBlockUi(program: Program, block: LayoutSource): UiNode {
     return node;
   }
 
-  const nodeForProperty = (prop: ModelProperty): UiNode => {
-    const child = childBlock(program, prop);
-    if (child && !child.scalar) {
-      const group = rescopeUi(emitBlockUi(program, child), prop.name);
-      const widget = propWidget(program, prop);
-      return widget
-        ? { ...group, options: { ...(group.options ?? {}), widget } }
-        : group;
-    }
-
-    const node: UiNode = {
-      type: "Control",
-      scope: `#/properties/${prop.name}`,
-    };
-    const label = propLabel(program, prop);
-    if (label) node.label = label;
-
-    const detail = itemDetail(program, prop);
-    if (detail) node.options = { ...(node.options ?? {}), detail };
-
-    const widget = propWidget(program, prop);
-    if (widget) node.options = { ...(node.options ?? {}), widget };
-    if (propReadOnly(program, prop))
-      node.options = { ...(node.options ?? {}), readonly: true };
-
-    const conds = propVisibleWhen(program, prop);
-    if (conds.length === 1) {
-      const c = conds[0];
-      node.rule = {
-        effect: "SHOW",
-        condition: jsonFormsCondition(c),
-      };
-    } else {
-      const enabled = propEnabledWhen(program, prop);
-      if (enabled.length === 1) {
-        const c = enabled[0];
-        node.rule = {
-          effect: "ENABLE",
-          condition: jsonFormsCondition(c),
-        };
-      } else {
-        const readOnly = propReadOnlyWhen(program, prop);
-        if (readOnly.length === 1) {
-          const c = readOnly[0];
-          node.rule = {
-            effect: "DISABLE",
-            condition: jsonFormsCondition(c),
-          };
-        }
-      }
-    }
-
-    return node;
-  };
+  const nodeForProperty = (prop: ModelProperty) => propertyUi(program, prop);
 
   const props =
     block.model.kind === "Model" ? layoutProps(program, block.model) : [];
-  const elements: UiNode[] = [];
-  const documentedStaticSections = block.sections
-    ? [...block.sections.members.values()].filter(
-        (member) =>
-          getDoc(program, member) &&
-          !props.some(
-            (prop) => propSection(program, prop)?.name === member.name,
-          ),
-      )
-    : [];
-
-  if (documentedStaticSections.length && block.sections) {
-    const emitted = new Set<string>();
-    for (const member of block.sections.members.values()) {
-      const description = getDoc(program, member);
-      const members = props.filter(
-        (prop) => propSection(program, prop)?.name === member.name,
-      );
-      if (!members.length && description)
-        elements.push({ type: "Label", text: description });
-      for (const prop of members) {
-        elements.push(nodeForProperty(prop));
-        emitted.add(prop.name);
-      }
-    }
-    for (const prop of props)
-      if (!emitted.has(prop.name)) elements.push(nodeForProperty(prop));
-  } else {
-    elements.push(...props.map(nodeForProperty));
-  }
+  const elements = props.map(nodeForProperty);
 
   const group: UiNode = { type: "Group", elements };
   if (block.label) group.label = block.label;
   else if (block.doc) group.label = block.doc;
-  return applyOverrides(group, block.overrides);
+  return group;
 }

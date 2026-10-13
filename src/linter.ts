@@ -15,12 +15,10 @@ import {
 import {
   allBlocks,
   modelOrder,
-  orderedProps,
   propEnabledWhen,
   propOmit,
   propReadOnlyWhen,
   propRequiredWhen,
-  propSection,
   propValidationConstraintsWhen,
   propVisibleWhen,
 } from "./model.js";
@@ -127,43 +125,6 @@ const questionDocs = createRule({
   },
 });
 
-const sectionUnused = createRule({
-  name: "section-unused",
-  severity: "warning",
-  description: "A declared section that no field is placed in.",
-  messages: {
-    default: paramMessage`Section "${"section"}" on ${"form"} holds no fields, so it will not render. Usually this means a field was dropped.`,
-  },
-  create(context) {
-    return {
-      root: (program) => {
-        for (const block of allBlocks(program)) {
-          if (
-            block.kind !== "form" ||
-            !block.sections ||
-            block.model.kind !== "Model"
-          )
-            continue;
-          const used = new Set<string>();
-          for (const prop of orderedProps(program, block)) {
-            const section = propSection(program, prop);
-            if (section) used.add(section.name);
-          }
-          for (const member of block.sections.members.values()) {
-            if (used.has(member.name)) continue;
-            // A documented empty section is deliberate static presentation content.
-            if (getDoc(program, member)) continue;
-            context.reportDiagnostic({
-              target: member,
-              format: { section: member.name, form: block.id },
-            });
-          }
-        }
-      },
-    };
-  },
-});
-
 const orderIncomplete = createRule({
   name: "order-incomplete",
   severity: "warning",
@@ -231,7 +192,7 @@ const redeclaredProperty = createRule({
   severity: "warning",
   description: "A derived block re-declaring a property it already inherits.",
   messages: {
-    default: paramMessage`${"model"} re-declares ${"names"} identically to ${"base"}. A redeclaration that narrows -- making an optional member required for this form -- says something; one that repeats says nothing, and leaves two copies to keep in step by hand. For presentation only, use @UI.overrides.`,
+    default: paramMessage`${"model"} re-declares ${"names"} identically to ${"base"}. A redeclaration that narrows -- making an optional member required for this form -- says something; one that repeats says nothing, and leaves two copies to keep in step by hand. To present it differently in one form, use a @UI.layout.`,
   },
   create(context) {
     return {
@@ -360,7 +321,6 @@ export const $linter = defineLinter({
   rules: [
     orphanQuestion,
     questionDocs,
-    sectionUnused,
     orderIncomplete,
     redeclaredProperty,
     untaggedQuestion,
@@ -370,7 +330,6 @@ export const $linter = defineLinter({
       enable: {
         "simpler-forms/no-orphan-question": true,
         "simpler-forms/require-question-docs": true,
-        "simpler-forms/section-unused": true,
         "simpler-forms/order-incomplete": true,
         "simpler-forms/no-redeclared-property": true,
         "simpler-forms/require-question-tags": true,

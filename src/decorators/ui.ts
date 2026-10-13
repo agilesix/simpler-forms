@@ -19,64 +19,24 @@ import {
   set,
 } from "./shared.js";
 
-// --- sections -------------------------------------------------------------
+// --- layouts --------------------------------------------------------------
 
-export const $sections = (ctx: Ctx, target: Model, sections: Enum) =>
-  set(ctx, stateKeys.sections, target, sections);
+export const $layout = (ctx: Ctx, target: Model, form: Model) =>
+  set(ctx, stateKeys.layout, target, form);
 
 /**
- * `valueof EnumMember` arrives as a value, not the member type, so resolve the
- * member's name and label here rather than in the emitters.
+ * Records the argument's syntax as well as the property it resolves to. A reference to a
+ * nested occurrence (`Form.payee::type.address`) resolves to the declaration, so the
+ * syntax is the only place the occurrence's path survives.
  */
-export const $section = (ctx: Ctx, target: ModelProperty, section: unknown) =>
-  set(ctx, stateKeys.section, target, sectionRef(section));
+export const $field = (ctx: Ctx, target: ModelProperty, field: ModelProperty) =>
+  set(ctx, stateKeys.layoutField, target, {
+    field,
+    node: ctx.getArgumentTarget(0),
+  });
 
-export function sectionRef(v: unknown): { name: string; label?: string } {
-  const m = v as any;
-  if (m && typeof m === "object") {
-    if (m.name)
-      return {
-        name: String(m.name),
-        label: m.value ? String(m.value) : undefined,
-      };
-    if (m.value?.name) {
-      return {
-        name: String(m.value.name),
-        label: m.value.value ? String(m.value.value) : undefined,
-      };
-    }
-  }
-  return { name: String(v) };
-}
-
-// --- form-scoped overrides ------------------------------------------------
-
-function overridePlain(value: unknown): unknown {
-  const candidate = value as any;
-  if (
-    candidate &&
-    typeof candidate === "object" &&
-    candidate.entityKind === "Value"
-  ) {
-    return literal(candidate);
-  }
-  if (Array.isArray(value)) return value.map(overridePlain);
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [
-        key,
-        overridePlain(nested),
-      ]),
-    );
-  }
-  return value;
-}
-
-export const $overrides = (
-  ctx: Ctx,
-  target: Model | ModelProperty,
-  patch: unknown,
-) => set(ctx, stateKeys.overrides, target, overridePlain(plain(ctx, patch)));
+export const $flatten = (ctx: Ctx, target: ModelProperty) =>
+  set(ctx, stateKeys.flatten, target, true);
 
 // --- presentation ---------------------------------------------------------
 
@@ -87,7 +47,7 @@ export const $overrides = (
  */
 export const $label = (
   ctx: Ctx,
-  target: Model | Scalar | ModelProperty,
+  target: Model | Scalar | Enum | ModelProperty,
   text: string,
 ) => {
   set(ctx, stateKeys.label, target, text);
@@ -110,7 +70,7 @@ export const $widgets = (ctx: Ctx, target: Namespace, widgets: Enum) =>
  */
 export const $widget = (
   ctx: Ctx,
-  target: ModelProperty,
+  target: ModelProperty | Scalar | Model,
   widget: EnumMember,
 ) => {
   set(
