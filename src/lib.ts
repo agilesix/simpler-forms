@@ -221,6 +221,18 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`In mapping ${"mapping"}, ${"target"} has no field of its own: it wraps fields of ${"context"}. Rules keyed by the response's properties cannot write an element with no property behind it, so its contents are left out.`,
       },
     },
+    "tag-not-declared": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} is tagged ${"tag"} from ${"enumName"}, which no namespace declares with @Meta.tags. Declare the program's tags once, e.g. @Meta.tags(${"enumName"}).`,
+      },
+    },
+    "entity-not-declared": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} is asked about entity ${"entity"} from ${"enumName"}, which no namespace declares with @Meta.entities. Declare the program's entities once, e.g. @Meta.entities(${"enumName"}).`,
+      },
+    },
     "widget-not-declared": {
       severity: "error",
       messages: {
@@ -352,8 +364,12 @@ export const $lib = createTypeSpecLibrary({
     layout: {},
     layoutField: {},
     flatten: {},
+    tagSets: {},
     tags: {},
+    tagMembers: {},
+    entitySets: {},
     entity: {},
+    entityMember: {},
     responseRole: {},
     label: {},
     helpText: {},

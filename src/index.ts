@@ -15,6 +15,8 @@ export const $decorators = {
     question: d.$question,
     submission: d.$submission,
     form: d.$form,
+    tags: d.$tags,
+    entities: d.$entities,
     tag: d.$tag,
     role: d.$role,
   },

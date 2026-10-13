@@ -226,6 +226,22 @@ export const propWidget = (p: Program, prop: ModelProperty) => {
   return undefined;
 };
 
+/** Every enum a namespace declares with `@Meta.tags`: the tags the program catalogues by. */
+export const declaredTagSets = (p: Program) =>
+  new Set(p.stateMap(stateKeys.tagSets).values() as Iterable<Enum>);
+
+/** Each question or scalar given a `@Meta.tag`, with the enum members it named. */
+export const tagMembers = (p: Program) =>
+  p.stateMap(stateKeys.tagMembers) as Map<Model | Scalar, EnumMember[]>;
+
+/** Every enum a namespace declares with `@Meta.entities`: what questions are asked about. */
+export const declaredEntitySets = (p: Program) =>
+  new Set(p.stateMap(stateKeys.entitySets).values() as Iterable<Enum>);
+
+/** Each question that names an entity, with the enum member it named. */
+export const entityMembers = (p: Program) =>
+  p.stateMap(stateKeys.entityMember) as Map<Model | Scalar, EnumMember>;
+
 /** Every enum a namespace declares with `@UI.widgets`: the widgets the program provides. */
 export const declaredWidgetSets = (p: Program) =>
   new Set(p.stateMap(stateKeys.widgets).values() as Iterable<Enum>);

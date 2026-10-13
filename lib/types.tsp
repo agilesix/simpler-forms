@@ -36,15 +36,15 @@ model QuestionMeta {
   id: string;
 
   /**
-   * The entity this question is asked *about* — the `entity` half of the id.
-   * Declared as an enum member rather than inferred from the id so it autocompletes
-   * and is checked; `entity-id-mismatch` reports the two disagreeing.
+   * The entity this question is asked *about* — the `entity` half of the id. A member of an
+   * enum declared with `@Meta.entities`, rather than inferred from the id, so it
+   * autocompletes and is checked; `entity-id-mismatch` reports the two disagreeing.
    *
    * Optional for now so the fold lands without rewriting every existing question in
    * one pass. It is present on all 279 questions in practice, so a linter rule should
    * promote it to mandatory once they carry it.
    */
-  entity?: EntityName;
+  entity?: unknown;
 
   version?: string;
   status?: "draft" | "stable" | "deprecated";
@@ -87,37 +87,6 @@ model ValidationConstraints {
   minItems?: int32;
   maxItems?: int32;
   pattern?: string;
-}
-
-enum TagName {
-  address,
-  phone,
-  email,
-  identifier,
-  name,
-  title,
-  person,
-  organization,
-  details,
-  generic,
-  money,
-  count,
-  attachment,
-  narrative,
-  date,
-  role,
-}
-
-enum EntityName {
-  primaryOrg,
-  fiscalSponsor,
-  poc,
-  principalInvestigator,
-  authorizedRepresentative,
-  project,
-  opportunity,
-  application,
-  generic,
 }
 
 enum Op {

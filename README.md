@@ -93,7 +93,7 @@ under the same name are an error, and so is one name emitted two ways.
 ```
 lib/            TypeSpec declarations — the decorator vocabulary
   main.tsp        the entry point a consumer imports
-  meta.tsp        @Meta.*   — question, submission, form, tag, role
+  meta.tsp        @Meta.*   — question, submission, form, tags, entities, role
   ui.tsp          @UI.*     — layouts, labels, widgets, conditions
   validation.tsp  @Validation.*
   mapping.tsp     @Mapping.* — links to other representations of a response
@@ -159,6 +159,28 @@ model Contacts {
 
 On a property whose type is a question with fields of its own, the widget is emitted on the
 group those fields lay out as.
+
+**Tags and entities are the consumer's catalogue.** A question bank sorts its questions by
+tag and by the entity each is asked about, and which tags and entities exist is that bank's
+decision. A program declares them the way it declares widgets, once each, with `@Meta.tags`
+and `@Meta.entities`. `@Meta.tag` and a question's `entity` then take their members, and a
+member of an enum no namespace declares is an error. As with widgets, a member's string value
+is what's emitted to the question's `index.json` when it has one:
+
+```tsp
+@Meta.tags(Tag)
+@Meta.entities(Entity)
+namespace Catalogue {
+  enum Tag { name, address, money }
+  enum Entity { poc, primaryOrg }
+}
+
+@Meta.question(#{ id: "poc/name", entity: Catalogue.Entity.poc })
+@Meta.tag(Catalogue.Tag.name)
+model PocName {
+  firstName: string;
+}
+```
 
 **A submission is the data; a form is one way of presenting it.** `@Meta.submission` holds
 what a form collects and submits: the schema, its validation and mappings, and the
