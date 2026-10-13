@@ -27,7 +27,10 @@ extern dec field(target: ModelProperty, field: ModelProperty);
 /** Place the referenced field's children here instead of as a group of their own. */
 extern dec flatten(target: ModelProperty);
 
-extern dec label(target: Model | Scalar | Enum | ModelProperty, text: valueof string);
+extern dec label(
+  target: Model | Scalar | Enum | ModelProperty,
+  text: valueof string
+);
 extern dec helpText(target: ModelProperty, text: valueof string);
 /**
  * Declare the widgets a program's renderers provide, as `@versioned` declares its versions.
