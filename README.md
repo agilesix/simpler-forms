@@ -1,33 +1,11 @@
 # simpler-forms
 
-A [TypeSpec](https://typespec.io) library for specifying grant application forms once and
-emitting portable form artifacts — a JSON Schema for the data, a UI schema for the layout,
-and an index describing how the two relate.
+A [TypeSpec](https://typespec.io) library for specifying forms once and emitting portable form
+artifacts: a JSON Schema for the data, a UI schema for the layout, and an index describing how
+the two relate.
 
-The library holds no form content and no vocabulary specific to any consuming application.
-Form definitions, a shared question bank, and target-specific emitters live in the
-repositories that consume this package.
-
-## Status
-
-Pre-release, published from `main` as `simpler-forms`, unscoped.
-
-Versions stay below 1.0 for now. release-please is configured with `bump-minor-pre-major`,
-so a breaking change moves the minor — 0.1.0 to 0.2.0 — instead of jumping to 1.0.0. Read any
-minor bump as potentially breaking until this section says otherwise.
-
-The library name is passed to `createTypeSpecLibrary` as both `name` and `alias`, and it is
-the alias that prefixes every diagnostic code and lint rule id. So a suppression in a form
-specification reads:
-
-```tsp
-#suppress "simpler-forms/no-orphan-question"
-```
-
-Because that prefix comes from the alias and not from the package name, moving the package
-into an npm scope later — `@agilesix/simpler-forms`, say — leaves every suppression already
-written in a specification working. What such a move does change is the import specifier in a
-consumer's specs and its dependency entry, one line each.
+The library holds no form content and no vocabulary of its own. Your program supplies the
+questions, the forms, and the widgets, tags and mapping targets they use.
 
 ## Install
 
@@ -35,257 +13,243 @@ consumer's specs and its dependency entry, one line each.
 pnpm add -D simpler-forms @typespec/compiler @typespec/json-schema
 ```
 
-`@typespec/compiler` and `@typespec/json-schema` are peer dependencies, so a consumer
-controls its own compiler version.
+`@typespec/compiler` and `@typespec/json-schema` are peer dependencies, so you control the
+compiler version.
 
-## Develop
+## Quick start
 
-```bash
-pnpm install
-pnpm build      # required before anything else — see below
-pnpm test
-pnpm checks     # format, lint, types, tests
+`tspconfig.yaml`:
+
+```yaml
+emit:
+  - simpler-forms
+options:
+  simpler-forms:
+    property-casing: snake
+linter:
+  extends:
+    - simpler-forms/recommended
 ```
 
-**Build before you type-check.** Each `lib/*.tsp` file imports `dist/src/index.js` to resolve
-the `extern dec` declarations it makes, so the TypeSpec sources do not type-check until the
-compiled JavaScript exists. This is why CI runs `pnpm build` ahead of `pnpm checks`, and why
-a fresh clone reports unimplemented decorators until the first build.
-
-## Release
-
-`main` is released by [release-please](https://github.com/googleapis/release-please). Pushing a
-conventional commit opens or updates a release pull request; merging that pull request tags the
-release and publishes the tarball to npm.
-
-Publication authenticates through npm trusted publishing, so this repository holds no npm
-token. The workflow exchanges a GitHub OIDC token for a short-lived credential, and npm
-attaches a provenance attestation to the version it accepts. The trusted publisher is
-configured against `.github/workflows/release.yml` by path, so renaming or moving that file
-stops publication until the publisher is updated to match.
-
-## Options
-
-Set in `tspconfig.yaml` under `options: simpler-forms:`.
-
-| Option            | Default    | Effect                                                        |
-| ----------------- | ---------- | ------------------------------------------------------------- |
-| `base-uri`        | none       | Makes every `$id` and cross-block `$ref` absolute.            |
-| `property-casing` | `preserve` | `snake` writes `firstName` as `first_name` in every artifact. |
-
-`property-casing` applies to `schema.json` property keys, `required` and conditional rules,
-`ui.json` Control and rule scopes, `index.json` field occurrence paths, and `@example`
-values. Specifications are still written in TypeSpec names, including string paths such as
-`@Validation.requiredPaths("primaryContact.name.firstName")`, and a path that does not
-resolve is reported in the name the author wrote.
-
-The `snake` rule starts a word at each capital that follows a lowercase letter or a digit,
-and treats a run of capitals as one word, so `ombNumber` and `OMBNumber` both become
-`omb_number`. Digits stay with the word before them: `street1` is unchanged and
-`sf424Version` becomes `sf424_version`. For a name the rule converts badly, use
-`@encodedName("application/json", "...")` on that property; it overrides the casing. A
-property name is emitted the same way everywhere it is declared, so every declaration of
-that name needs the same `@encodedName`. Two properties of one model that would be emitted
-under the same name are an error, and so is one name emitted two ways.
-
-## Layout
-
-```
-lib/            TypeSpec declarations — the decorator vocabulary
-  main.tsp        the entry point a consumer imports
-  meta.tsp        @Meta.*   — question, form, tags, entities, role
-  ui.tsp          @UI.*     — layouts, labels, widgets, conditions
-  validation.tsp  @Validation.*
-  mapping.tsp     @Mapping.* — links to other representations of a response
-  types.tsp       shared scalars and enums
-src/            the library implementation
-  public.ts       the API a target emitter reads — the only semver-governed surface
-  decorators/     decorator entry points, one module per namespace
-  model.ts        typed accessors over decorator state
-  mapping.ts      resolveMapping — a form's links in one mapping, through what it composes
-  forms.ts        which @Meta.form models are published, and with which layout
-  layout.ts       resolves a @UI.layout's references, placements and conditions
-  validate.ts     $onValidate — cross-cutting checks reported as diagnostics
-  linter.ts       lint rules
-  emitter.ts      $onEmit — writes the canonical artifacts
-  casing.ts       property-casing — renames properties in finished artifacts
-  emitters/       one module per emitted artifact
-  lib.ts          createTypeSpecLibrary — diagnostics, lint rules, emitter options
-test/           vitest suites, driven by the compiler's createTester
-```
-
-Only `src/public.ts` is public API. The decorator implementations, emitters and validators
-are internal, and a target emitter reaching past that module depends on something that can
-change in a patch.
-
-## Design notes
-
-**Diagnostics are live in the editor.** `$onValidate` runs in the standard compile pipeline
-before the linter and is not gated by `noEmit`, and the language server routes through that
-same pipeline. A custom diagnostic therefore appears as a squiggle while an author types,
-not only in CI.
-
-**Where artifacts land is the consumer's decision.** The emitter writes to
-`emitter-output-dir` in a stable layout of its own. It deliberately knows nothing about any
-consuming application's directory conventions; installing artifacts into a particular tree is
-a separate step owned by the consumer, so that a downstream layout change is not a breaking
-change here.
-
-**Target vocabulary belongs downstream.** A consuming application's own decorators, state,
-validation and emitted files are contributed by its own TypeSpec library listed alongside
-this one in `tspconfig.yaml`, rather than by a plugin interface here.
-
-**Widgets are the consumer's vocabulary.** Which widgets exist is a contract between a
-program and its renderers, so this library ships no widget list. A program declares its own
-set once with `@UI.widgets`, the way `@versioned` declares versions, and `@UI.widget` then
-takes a member of that enum. A member of an enum no namespace declares is an error. The
-emitted name is the member's string value when it has one, and its name otherwise:
+`main.tsp`:
 
 ```tsp
-@UI.widgets(Widget)
-namespace Rendering {
-  enum Widget {
-    Text,
-    FieldList,
-    Attachment: "ApplicationAttachment",
-  }
-}
+import "@typespec/json-schema";
+import "simpler-forms";
 
-model Contacts {
-  @UI.widget(Rendering.Widget.FieldList)
-  contacts: Contact[];
-}
-```
+using SimplerForms;
 
-On a property whose type is a question with fields of its own, the widget is emitted on the
-group those fields lay out as.
-
-**Tags and entities are the consumer's catalogue.** A question bank sorts its questions by
-tag and by the entity each is asked about, and which tags and entities exist is that bank's
-decision. A program declares them the way it declares widgets, once each, with `@Meta.tags`
-and `@Meta.entities`. `@Meta.tag` and a question's `entity` then take their members, and a
-member of an enum no namespace declares is an error. As with widgets, a member's string value
-is what's emitted to the question's `index.json` when it has one:
-
-```tsp
 @Meta.tags(Tag)
 @Meta.entities(Entity)
 namespace Catalogue {
-  enum Tag { name, address, money }
-  enum Entity { poc, primaryOrg }
+  enum Tag { name, contact }
+  enum Entity { poc }
 }
 
-@Meta.question(#{ id: "poc/name", entity: Catalogue.Entity.poc })
-@Meta.tag(Catalogue.Tag.name)
-model PocName {
-  firstName: string;
+@UI.widgets(Widget)
+namespace Rendering {
+  enum Widget { Text, TextArea }
+}
+
+@JsonSchema.jsonSchema
+namespace Questions {
+  /** The name of the person to contact. */
+  @Meta.question(#{ id: "poc/name", entity: Catalogue.Entity.poc })
+  @Meta.tag(Catalogue.Tag.name, Catalogue.Tag.contact)
+  model PersonName {
+    @UI.label("First Name") firstName: string;
+    @UI.label("Last Name") lastName: string;
+  }
+}
+
+@JsonSchema.jsonSchema
+namespace Forms {
+  /** Who to contact about this application. */
+  @Meta.form(#{ id: "point-of-contact", formName: "POINT OF CONTACT" })
+  model PointOfContact {
+    @UI.label("Contact Name")
+    name: Questions.PersonName;
+
+    @UI.label("Notes")
+    @UI.widget(Rendering.Widget.TextArea)
+    notes?: string;
+  }
 }
 ```
 
-**A form is the data an applicant submits.** `@Meta.form` goes on the model that holds it:
-the schema, its validation and its mappings, published under the form's id as
-`forms/<id>/`. A simple form lays itself out, the way a question does: its fields' `@UI.*`
-decorators lay it out, and each object field becomes a labelled group.
+`tsp compile main.tsp` writes:
+
+```
+tsp-output/simpler-forms/
+  question-bank/poc/name/      schema.json  ui.json  index.json
+  forms/point-of-contact/      schema.json  ui.json  index.json  manifest.json
+```
+
+| Artifact        | What it holds                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `schema.json`   | The JSON Schema for the data, with its validation                                                                                   |
+| `ui.json`       | A [JSON Forms](https://jsonforms.io) UI schema laying the data out                                                                  |
+| `index.json`    | A catalogue entry: name, description and tags; for a question, its entity and what it composes; for a form, where each field occurs |
+| `manifest.json` | The form's identity and the artifacts in its package                                                                                |
+
+Where the artifacts go from there is up to you: the emitter writes the same layout to
+`emitter-output-dir` regardless of where your application installs them.
+
+## Questions
+
+A question is a reusable block of a form, given a stable id with `@Meta.question`. It is
+published under `question-bank/<id>/`, and a form that composes it refers to its schema.
+
+- `entity` names what the question is asked about, and is the first segment of its id.
+- `@Meta.tag` files it under headings in a question catalogue.
+- Its doc comment is its description; `@UI.label` and `@UI.helpText` are how it reads in a form.
+- A property whose type is a question takes the question's label unless it sets its own.
+
+## Forms
+
+`@Meta.form` goes on the model holding the data an applicant submits, and publishes it under
+`forms/<id>/`. Its fields' `@UI.*` decorators lay it out, and each object field becomes a
+labeled group.
+
+Validation lives on the form and its questions, in the `@Validation.*` decorators:
+conditional requiredness (`@Validation.requiredPaths`, `@Validation.requiredWhen`), constraints
+that apply under a condition, calculated values and more. See `lib/validation.tsp` for the
+full set.
+
+A platform's own identity for a form, such as the name and version a submission system knows it
+by, belongs in that platform's TypeSpec library, as a decorator of its own on the same model.
+
+## Layouts
+
+A `@UI.layout` model presents a form differently from how its data is shaped, and is published
+as the form's `ui.json`. It points at the form's fields with typed references, so a misspelled
+field is a compiler error.
 
 ```tsp
-@Meta.form(#{ id: "key-contacts", formName: "KEY CONTACTS" })
-model KeyContacts {
-  @UI.label("Applicant Organization Name")
-  applicantOrganizationName: OrganizationName;
+@UI.layout(PointOfContact)
+model PointOfContactLayout {
+  /** Enter the contact's name. */
+  @UI.label("Contact")
+  contact: {
+    name: PointOfContact.name;
+  };
 
-  @UI.widget(Rendering.Widget.FieldList)
-  keyContacts: KeyContact[];
+  @UI.label("Other")
+  other: {
+    notes: PointOfContact.notes;
+  };
 }
 ```
 
-A platform's own identity for a form, such as the name and version a submission system knows
-it by, is that platform's vocabulary. Its library declares a decorator of its own for it, on
-the same model, rather than adding to `@Meta.form`.
+- Its top-level properties are sections, in order, and a doc comment is a section's description.
+- A field reference places that field as its own model lays it out.
+- An entry typed as a model with `@UI.field(ref)` lays out that field's contents, listing only
+  what changes and keeping the rest in their declared order. References inside it are relative
+  to the field, so one entry model can serve several fields.
+- An entry can set a label, help text, a widget, `@UI.omit`, `@UI.flatten` (place a field's
+  children without their group) and one display condition.
+- Validation stays on the form, so a `@Validation.*` decorator on a layout entry is an error.
 
-**A layout presents a form another way.** A `@UI.layout` model points at the form's fields
-with typed references, so a misspelled field is a compiler error. Its
-top-level properties are sections, in order. Inside one, a field reference places that
-field as its model lays it out; a model with `@UI.field` lays out one field's contents,
-listing what changes and leaving the rest in their declared order; a model without it is a
-new group of only what it lists. References are relative to the enclosing `@UI.field` type,
-or absolute from the presented model, so one entry model can serve several fields:
+A form has at most one layout.
 
-```tsp
-model PersonWithoutCountyOrProvince {
-  @UI.omit county: Person.address::type.county;
-  @UI.omit province: Person.address::type.province;
-}
+## Your program's vocabulary
 
-@UI.layout(EPAKeyContacts)
-model EPAKeyContactsLayout {
-  @UI.label("Authorized Representative")
-  @UI.field(EPAKeyContacts.authorizedRepresentative)
-  authorizedRepresentative: PersonWithoutCountyOrProvince;
+Which widgets your renderers provide, which tags and entities your question bank uses, and
+which representations your forms map to are yours to declare. Declare each set once, on a
+namespace, and the decorators that use them take its members:
 
-  @UI.label("Payee")
-  @UI.field(EPAKeyContacts.payee)
-  payee: PersonWithoutCountyOrProvince;
-}
-```
+| Declare                  | Used by                        |
+| ------------------------ | ------------------------------ |
+| `@UI.widgets(Enum)`      | `@UI.widget`                   |
+| `@Meta.tags(Enum)`       | `@Meta.tag`                    |
+| `@Meta.entities(Enum)`   | `@Meta.question`'s `entity`    |
+| `@Mapping.targets(Enum)` | `@Mapping.to`, `@Mapping.from` |
 
-An entry can set a label, help text (`@UI.helpText` or a doc comment), a widget, `@UI.omit`,
-`@UI.flatten` to place a field's children without their group, and one display condition
-whose source is a typed reference resolved the same way. Validation stays on the form, so a
-`@Validation.*` decorator on an entry is an error. The layout is published as the form's
-`ui.json`, in place of the one its fields would give. A form has at most one layout, and a
-layout presents a model with `@Meta.form`.
+A member of an enum no namespace declares is an error. Where a member is emitted, its string
+value is used when it has one, and its name otherwise.
 
-**Mappings link a form to its other representations.** A response often has to be written
-in another shape too: an XML document, a CSV row. `@Mapping.to` links a model or property to
-its counterpart in a TypeSpec model of that shape, the mapping target. The wire details
-(element names, namespaces, column headers) stay on the target, in whatever vocabulary its
-representation uses. Which mappings exist is the program's to declare, with `@Mapping.targets`, the way
-`@UI.widgets` declares widgets; each link names one, so a form carries several side by side:
+## Mappings
+
+A response often has to be written in another shape too, such as an XML document or a CSV row.
+A mapping links a form to a TypeSpec model of that shape, the mapping target. Wire details
+such as element names and namespaces stay on the target, in whatever vocabulary its
+representation uses.
+
+Declare the links on the target with `@Mapping.from`. The target's root names the form, and
+each property names the field it is filled from, relative to its parent's field. A target type
+shared by many forms is annotated once, against the questions that fill it:
 
 ```tsp
 @Mapping.targets(Target)
 namespace Mappings {
-  enum Target { grantsGovXml, csv }
+  enum Target { xml }
 }
 
-@Mapping.to(Mappings.Target.grantsGovXml, Xsd.HumanName)
-model PersonName {
-  @Mapping.to(Mappings.Target.grantsGovXml, Xsd.HumanName.firstName)
-  @Mapping.to(Mappings.Target.csv, Csv.Row.contactFirstName)
-  firstName: string;
+model Name {
+  @Mapping.from(Mappings.Target.xml, Questions.PersonName.firstName) first: string;
+  @Mapping.from(Mappings.Target.xml, Questions.PersonName.lastName) last: string;
+}
+
+@Mapping.from(Mappings.Target.xml, Forms.PointOfContact)
+model Root {
+  @Mapping.from(Mappings.Target.xml, Forms.PointOfContact.name) contactName: Name;
+  @Mapping.from(Mappings.Target.xml, Forms.PointOfContact.notes) notes?: string;
 }
 ```
 
-A question links once, at the level its mapping is shared, and every form that composes it
-gets those links. A composing model whose target differs adds or overrides links for nested
-paths with `@Mapping.path`; an object with no link of its own whose descendants are linked
-that way is flattened into its parent. A mapping emitter takes the members it emits as an
-option, checks them against `mappingTargets`, and calls `resolveMapping` once per form per
-member. Every link is checked as it resolves: against the model its parent maps to, against
-the target's type and cardinality, and against other sources landing on the same target.
+The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
+for nested paths. Every link is checked as it resolves, against the target's type and
+cardinality.
 
-The same links can be declared from the other side, on the target, with `@Mapping.from`. The
-target model names the form it is the target of, as `@UI.layout` names the form it presents,
-and each target property names the field it is filled from, relative to the field its parent
-is filled from. A target shared by many forms is annotated once against the questions that
-fill it:
+simpler-forms emits no mapping artifact itself: an emitter for the target format reads the
+links (see [Writing a target emitter](#writing-a-target-emitter)).
+
+## Options
+
+Set under `options: simpler-forms:` in `tspconfig.yaml`.
+
+| Option            | Default    | Effect                                                       |
+| ----------------- | ---------- | ------------------------------------------------------------ |
+| `base-uri`        | none       | Makes every `$id` and cross-block `$ref` absolute            |
+| `property-casing` | `preserve` | `snake` writes `firstName` as `first_name` in every artifact |
+
+With `snake`, specifications are still written in TypeSpec names, including string paths such as
+`@Validation.requiredPaths("contact.name.firstName")`. A run of capitals is one word
+(`OMBNumber` becomes `omb_number`), and digits stay with the word before them (`street1` is
+unchanged). For a name the rule converts badly, set `@encodedName("application/json", "...")`
+on every property with that name.
+
+## Diagnostics
+
+Checks run as you type in an editor with the TypeSpec extension, as well as on compile. Extend
+`simpler-forms/recommended` in `tspconfig.yaml` for the lint rules, and suppress a diagnostic by
+its code:
 
 ```tsp
-model HumanName {
-  @Mapping.from(Mappings.Target.grantsGovXml, PersonName.firstName) firstName: string;
-}
-
-@Mapping.from(Mappings.Target.grantsGovXml, Forms.KeyContacts)
-model Root {
-  @Mapping.from(Mappings.Target.grantsGovXml, Forms.KeyContacts.contacts) contacts: Contact[];
-}
+#suppress "simpler-forms/no-orphan-question" "Asked only by forms in another repository"
 ```
 
-`resolveMappingFrom` resolves those links into the same tree `resolveMapping` does, so an
-emitter can read either. A target property with no `@Mapping.from` whose own properties are
-filled is a wrapper element. The tree, keyed by the form's properties, cannot hold one, so it
-is left out with a `mapping-from-wrapper` problem, which an emitter whose output cannot hold a
-wrapper either reports.
+## Writing a target emitter
+
+An emitter for another format, such as the XML a mapping target describes, is a TypeSpec
+library of its own, listed beside this one in `tspconfig.yaml`. It reads forms, layouts and
+mappings through the package's JavaScript API:
+
+```ts
+import { resolveForms, resolveMappingFrom } from "simpler-forms";
+```
+
+That API, from `src/public.ts`, is the supported surface. Anything else in the package is
+internal and can change in any release.
+
+## Versioning
+
+simpler-forms is below 1.0. A breaking change bumps the minor version (0.1.0 to 0.2.0), so
+treat every minor release as potentially breaking. The changelog lists breaking changes first.
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
