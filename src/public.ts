@@ -93,3 +93,12 @@ export {
   cardinalityRequiredPathWhenPositiveDecimalString,
   cardinalityPositiveDecimalStringWhenPathPresent,
 } from "./model.js";
+
+// --- property casing ------------------------------------------------------
+// A target emitter writing its own artifacts uses these to name properties as this one does.
+export {
+  /** The name a property is emitted under, honoring `@encodedName("application/json")`. */
+  jsonPropertyName,
+  snakeCase,
+  type PropertyCasing,
+} from "./casing.js";
