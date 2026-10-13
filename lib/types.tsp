@@ -52,31 +52,17 @@ model QuestionMeta {
 }
 
 /**
- * What a form collects and submits, shared by every presentation of it: the schema's
- * identity and the paper form it mirrors. A change to any of these is a new submission.
- */
-model SubmissionMeta {
-  /** Semantic id — e.g. "key-contacts". Also the published schema's id. */
-  id: string;
-
-  legacyFormId?: int32;
-  shortFormName: string;
-  formVersion: string;
-  agencyCode?: string;
-  ombNumber?: string;
-}
-
-/**
- * One presentation of a submission, published under its own id. Everything about the
- * submission comes from the model it presents, so it cannot be restated here.
+ * A form's identity. A platform's own identity for the form, such as its name and version
+ * in a submission system, belongs to that platform's library, as a decorator of its own on
+ * the same model.
  */
 model FormMeta {
-  /** Defaults to the submission's id when the form presents its own model. */
-  id?: string;
+  /** Semantic id — e.g. "key-contacts". Also the published schema's id and directory. */
+  id: string;
 
   formName: string;
 
-  /** Revision of this presentation. Not the Grants.gov version, which is the submission's. */
+  /** Revision of the form. */
   revision?: string;
 }
 

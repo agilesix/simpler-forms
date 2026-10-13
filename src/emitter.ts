@@ -98,11 +98,9 @@ export async function $onEmit(
   );
 
   for (const block of blocks) {
-    // A submission is published once for each form presenting it, and not at all without one.
-    const published = forms.filter(
-      (form) => form.submission.model === block.model,
-    );
-    if (block.kind === "submission" && !published.length) continue;
+    // A form that cannot be published, such as one with two layouts, writes nothing.
+    const form = forms.find((f) => f.model === block.model);
+    if (block.kind === "form" && !form) continue;
     const dir = refToDir.get(blockSchemaRef(block.id))!;
     const stock = byId.get(resolvedSchemaId(program, block));
     if (!stock) {
@@ -148,35 +146,28 @@ export async function $onEmit(
       continue;
     }
 
-    // A form's title is its own, in its manifest; the submission's schema carries none.
-    const { title: _title, ...submissionSchema } = schema;
-    for (const form of published) {
-      const formDir = `forms/${form.id}`;
-      await write(`${formDir}/schema.json`, casing.json(submissionSchema));
-      await write(`${formDir}/ui.json`, casing.json(formUi(program, form)));
-      await write(`${formDir}/index.json`, { ...index, id: form.id });
-      await write(`${formDir}/manifest.json`, {
-        contract: "resolved-form-package/v1",
-        form: form.meta,
-        submission: block.meta,
-        artifacts: {
-          "schema.json": "generated",
-          "ui.json": "generated",
-          "index.json": "generated",
-        },
-      });
-    }
+    // A form's title is its own, in its manifest; its schema carries none.
+    const { title: _title, ...formSchema } = schema;
+    await write(`${dir}/schema.json`, casing.json(formSchema));
+    await write(`${dir}/ui.json`, casing.json(formUi(program, form!)));
+    await write(`${dir}/index.json`, index);
+    await write(`${dir}/manifest.json`, {
+      contract: "resolved-form-package/v1",
+      form: form!.meta,
+      artifacts: {
+        "schema.json": "generated",
+        "ui.json": "generated",
+        "index.json": "generated",
+      },
+    });
   }
 }
 
-/** A form's UI: its layout's, or its submission's own presentation. */
+/** A form's UI: its layout's, or its own fields' presentation. */
 function formUi(program: Program, form: PublishedForm) {
   return form.layout
-    ? emitLayoutUi(
-        program,
-        resolveLayout(program, form.layout, form.submission.model as Model),
-      ).ui
-    : emitBlockUi(program, form.submission);
+    ? emitLayoutUi(program, resolveLayout(program, form.layout, form.model)).ui
+    : emitBlockUi(program, form.block);
 }
 
 /**

@@ -39,8 +39,8 @@ const emitted = (body: string) => `
   }
 `;
 
-describe("@Meta.submission and @Meta.form", () => {
-  it("accepts a submission that presents itself", async () => {
+describe("@Meta.form", () => {
+  it("accepts a form that lays itself out", async () => {
     expectDiagnosticEmpty(
       await Tester.diagnose(
         form(`
@@ -51,73 +51,41 @@ describe("@Meta.submission and @Meta.form", () => {
     );
   });
 
-  it("rejects a form with no submission", async () => {
-    expectDiagnostics(
-      await Tester.diagnose(
-        form(`
-          @Meta.form(#{ id: "contact-form", formName: "Contact" })
-          model ContactForm { name?: string; }
-        `),
-      ),
-      {
-        code: "simpler-forms/layout-form-without-submission",
-        message: /ContactForm has @Meta.form but no @Meta.submission/,
-      },
-    );
-  });
-
-  it("rejects a form restating a submission fact, as a type error", async () => {
+  it("rejects a platform's identity for the form, as a type error", async () => {
     const diagnostics = await Tester.diagnose(
       form(`
-        @Meta.submission(#{ id: "contact-form", shortFormName: "C", formVersion: "1.0" })
-        @Meta.form(#{ formName: "Contact", formVersion: "1.1" })
+        @Meta.form(#{ id: "contact-form", formName: "Contact", formVersion: "1.0" })
         model ContactForm { name?: string; }
       `),
     );
     expect(diagnostics.map((d) => d.code)).toContain("invalid-argument");
   });
 
-  it("reports two forms published under one id on both", async () => {
+  it("reports two forms with one id", async () => {
     expectDiagnostics(
       await Tester.diagnose(
         form(`
           ${formMeta("contact-form")}
           model ContactForm { name?: string; }
 
-          @Meta.submission(#{ id: "other-form", shortFormName: "O", formVersion: "1.0" })
           @Meta.form(#{ id: "contact-form", formName: "Other" })
           model OtherForm { name?: string; }
         `),
       ),
-      [
-        { code: "simpler-forms/layout-form-id-duplicate" },
-        { code: "simpler-forms/layout-form-id-duplicate" },
-      ],
+      { code: "simpler-forms/duplicate-block-id" },
     );
   });
 
-  it("writes the form and its submission separately in the manifest", async () => {
+  it("writes the form's identity in the manifest", async () => {
     const { json } = await emit(
       emitted(`
-        @Meta.submission(#{
-          id: "contact-form",
-          shortFormName: "Contact",
-          formVersion: "2.0",
-          ombNumber: "0000-0000",
-        })
-        @Meta.form(#{ formName: "CONTACT FORM", revision: "b" })
+        @Meta.form(#{ id: "contact-form", formName: "CONTACT FORM", revision: "b" })
         model ContactForm { name?: string; }
       `),
     );
     expect(json("forms/contact-form/manifest.json")).toEqual({
       contract: "resolved-form-package/v1",
       form: { id: "contact-form", formName: "CONTACT FORM", revision: "b" },
-      submission: {
-        id: "contact-form",
-        shortFormName: "Contact",
-        formVersion: "2.0",
-        ombNumber: "0000-0000",
-      },
       artifacts: {
         "schema.json": "generated",
         "ui.json": "generated",
@@ -127,17 +95,7 @@ describe("@Meta.submission and @Meta.form", () => {
     expect(json("forms/contact-form/index.json").kind).toEqual("form");
   });
 
-  it("publishes no package for a submission with no form", async () => {
-    const { paths } = await emit(
-      emitted(`
-        @Meta.submission(#{ id: "contact-form", shortFormName: "C", formVersion: "1.0" })
-        model ContactForm { name?: string; }
-      `),
-    );
-    expect(paths.filter((p) => p.startsWith("forms/"))).toEqual([]);
-  });
-
-  it("leaves the form's label out of the submission's schema", async () => {
+  it("leaves the form's label out of its schema", async () => {
     const { json } = await emit(
       emitted(`
         ${formMeta("contact-form")}

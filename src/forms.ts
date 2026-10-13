@@ -5,26 +5,27 @@ import {
   type FormMeta,
   allFormMetas,
   allLayouts,
+  modelFormMeta,
   readBlock,
 } from "./model.js";
 
-/** One form an applicant opens, published under its own id. */
+/** One form an applicant opens, published under its id. */
 export interface PublishedForm {
   id: string;
-  /** The model carrying `@Meta.form`: a submission, or a `@UI.layout` of one. */
+  /** The model carrying `@Meta.form`, whose schema the form publishes. */
   model: Model;
-  meta: FormMeta & { id: string };
-  /** The submission this form presents, whose schema it publishes. */
-  submission: Block;
-  /** Set when the form is a layout of its submission rather than the submission itself. */
+  meta: FormMeta;
+  block: Block;
+  /** The `@UI.layout` presenting the form, when its own fields do not lay it out. */
   layout?: Model;
 }
 
 /**
  * Every `@Meta.form` that can be published, and the problems that stop the others.
  *
- * A form is a submission presenting itself, whose id it takes unless it gives one, or a
- * `@UI.layout` of a submission, which must give its own.
+ * A form's fields lay it out, unless one `@UI.layout` model presents it. A layout of a
+ * model with no `@Meta.form` is reported, and so is a form with two layouts, which is not
+ * published. Two forms with one id are reported as `duplicate-block-id`.
  */
 export function resolveForms(program: Program): {
   forms: PublishedForm[];
@@ -32,55 +33,49 @@ export function resolveForms(program: Program): {
 } {
   const forms: PublishedForm[] = [];
   const problems: Diagnostic[] = [];
-  const byId = new Map<string, PublishedForm>();
-  const layouts = allLayouts(program);
 
+  const layoutsOf = new Map<Model, Model[]>();
+  for (const [layout, presented] of allLayouts(program)) {
+    if (!modelFormMeta(program, presented)) {
+      problems.push(
+        createDiagnostic({
+          code: "layout-not-form",
+          target: layout,
+          format: { name: layout.name, presented: presented.name },
+        }),
+      );
+      continue;
+    }
+    layoutsOf.set(presented, [...(layoutsOf.get(presented) ?? []), layout]);
+  }
+
+  const ids = new Set<string>();
   for (const [model, meta] of allFormMetas(program)) {
-    const presented = layouts.get(model);
-    const submission = readBlock(program, presented ?? model);
-    if (submission?.kind !== "submission") {
-      problems.push(
-        createDiagnostic({
-          code: "layout-form-without-submission",
-          messageId: presented ? "layout" : "default",
-          target: model,
-          format: { name: model.name, presented: presented?.name ?? "" },
-        }),
-      );
-      continue;
-    }
-    const id = meta.id ?? (presented ? undefined : submission.id);
-    if (!id) {
-      problems.push(
-        createDiagnostic({
-          code: "layout-form-id",
-          target: model,
-          format: { name: model.name, submission: submission.model.name },
-        }),
-      );
-      continue;
-    }
-    const form: PublishedForm = {
-      id,
-      model,
-      meta: { id, ...meta },
-      submission,
-      ...(presented ? { layout: model } : {}),
-    };
-    const first = byId.get(id);
-    if (first) {
-      for (const target of [first.model, model])
+    const layouts = layoutsOf.get(model) ?? [];
+    if (layouts.length > 1) {
+      for (const target of layouts)
         problems.push(
           createDiagnostic({
-            code: "layout-form-id-duplicate",
+            code: "layout-duplicate",
             target,
-            format: { id, first: first.model.name, second: model.name },
+            format: {
+              form: model.name,
+              first: layouts[0].name,
+              second: layouts[1].name,
+            },
           }),
         );
       continue;
     }
-    byId.set(id, form);
-    forms.push(form);
+    if (ids.has(meta.id)) continue;
+    ids.add(meta.id);
+    forms.push({
+      id: meta.id,
+      model,
+      meta,
+      block: readBlock(program, model)!,
+      ...(layouts.length ? { layout: layouts[0] } : {}),
+    });
   }
 
   return { forms, problems };

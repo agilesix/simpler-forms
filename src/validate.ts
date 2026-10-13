@@ -609,7 +609,7 @@ function compositionParents(
 function checkComputedPaths(program: Program, blocks: Block[]): void {
   const forms = blocks.filter(
     (block): block is Block & { model: Model } =>
-      block.kind === "submission" && block.model.kind === "Model",
+      block.kind === "form" && block.model.kind === "Model",
   );
   const models: Model[] = [];
   const visit = (namespace: Namespace): void => {

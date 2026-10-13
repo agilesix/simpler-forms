@@ -56,18 +56,14 @@ export const $entities = (ctx: Ctx, target: Namespace, entities: Enum) =>
   set(ctx, stateKeys.entitySets, target, entities);
 
 /**
- * `@Meta.submission`: what a form collects and submits. Publishes the model's JSON Schema,
- * as `@Meta.question` does, so a submission is a block.
+ * `@Meta.form`: a form an applicant opens, and the data it submits. Publishes the model's
+ * JSON Schema, as `@Meta.question` does, so a form is a block.
  */
-export const $submission = (ctx: Ctx, target: Model, meta: unknown) => {
+export const $form = (ctx: Ctx, target: Model, meta: unknown) => {
   const m = plain(ctx, meta) as { id: string };
-  set(ctx, stateKeys.submissionMeta, target, m);
+  set(ctx, stateKeys.formMeta, target, m);
   publishAs(ctx, target, m.id);
 };
-
-/** `@Meta.form`: one presentation's identity. Publishes no schema of its own. */
-export const $form = (ctx: Ctx, target: Model, meta: unknown) =>
-  set(ctx, stateKeys.presentationMeta, target, plain(ctx, meta));
 
 /**
  * `@Meta.tag`: catalogue markers. Unlike the entity, a tag also applies to a bare
