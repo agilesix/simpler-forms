@@ -3,6 +3,12 @@
   "version": "0.0.0",
   "description": "A TypeSpec library for specifying forms once and emitting portable form artifacts.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agilesix/simpler-forms.git"
+  },
+  "homepage": "https://github.com/agilesix/simpler-forms#readme",
+  "bugs": "https://github.com/agilesix/simpler-forms/issues",
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
