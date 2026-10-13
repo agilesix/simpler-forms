@@ -229,7 +229,7 @@ function resolve(
     });
   };
 
-  /** Validity belongs to the submission, which every layout of it shares. */
+  /** Validity belongs to the form, not to the layout presenting it. */
   const checkNoValidation = (entry: ModelProperty) => {
     for (const app of entry.decorators) {
       const definition = app.definition;
@@ -565,14 +565,14 @@ export const isList = (type: Type) => type.kind === "Model" && !!type.indexer;
 const startsWith = (path: string[], prefix: string[]) =>
   prefix.every((step, i) => path[i] === step);
 
-// --- what the submission says about a field -------------------------------
+// --- what the form says about a field -------------------------------------
 
 const ownConditionCount = (program: Program, prop: ModelProperty) =>
   propVisibleWhen(program, prop).length +
   propEnabledWhen(program, prop).length +
   propReadOnlyWhen(program, prop).length;
 
-/** When the submission requires a field: always, or under each of these conditions. */
+/** When the form requires a field: always, or under each of these conditions. */
 function requiredness(
   program: Program,
   prop: ModelProperty,

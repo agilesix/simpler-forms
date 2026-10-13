@@ -61,7 +61,7 @@ const spec = (layouts: string) => `
 
   @JsonSchema.jsonSchema
   namespace Forms {
-    @Meta.submission(#{ id: "contacts" })
+    @Meta.form(#{ id: "contacts", formName: "Contacts" })
     model Contacts {
       /** Individual authorized to accept payments. */
       @UI.label("Payee")
@@ -96,7 +96,7 @@ const emit = async (layouts: string) => {
 const diagnose = (layouts: string) => EmitTester.diagnose(spec(layouts));
 
 /** The layout of the published form `id`. */
-const ui = async (layouts: string, id = "contacts-layout"): Promise<Json> => {
+const ui = async (layouts: string, id = "contacts"): Promise<Json> => {
   const { diagnostics, json } = await emit(layouts);
   expectDiagnosticEmpty(
     diagnostics.filter((d: Diagnostic) => d.severity === "error"),
@@ -111,9 +111,6 @@ const outline = (node: Json): unknown =>
       ? { [node.scope]: outline(node.options.detail) }
       : node.scope
     : { [node.label ?? "(group)"]: (node.elements ?? []).map(outline) };
-
-const form = (id = "contacts-layout") =>
-  `@Meta.form(#{ id: "${id}", formName: "Contacts" })`;
 
 /** Every top-level field, placed as its model lays it out. */
 const everything = `
@@ -130,7 +127,6 @@ describe("@UI.layout", () => {
   describe("entries", () => {
     it("places a referenced field as its model lays it out", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout { ${everything} }
       `);
@@ -170,7 +166,6 @@ describe("@UI.layout", () => {
 
     it("lays out a field with @UI.field: listed entries first, the rest after", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           people: {
@@ -203,7 +198,6 @@ describe("@UI.layout", () => {
 
     it("makes a group of only what a model without @UI.field lists", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           /** Names first. */
@@ -227,7 +221,6 @@ describe("@UI.layout", () => {
 
     it("pulls a deep field out to where it is listed", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           ${everything}
@@ -251,7 +244,6 @@ describe("@UI.layout", () => {
         model PersonWithoutCounty {
           @UI.omit county: Person.address::type.county;
         }
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           @UI.field(Contacts.payee) payee: PersonWithoutCounty;
@@ -271,7 +263,6 @@ describe("@UI.layout", () => {
 
     it("lays out a list's entries through @UI.field, relative to the entry", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           payee: { payee: Contacts.payee; manager: Contacts.manager; };
@@ -300,7 +291,6 @@ describe("@UI.layout", () => {
 
     it("gives a section that wraps a list the list's description", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           payee: { payee: Contacts.payee; manager: Contacts.manager; };
@@ -316,7 +306,6 @@ describe("@UI.layout", () => {
 
     it("places a field's children without their group with @UI.flatten", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           @UI.field(Contacts.payee)
@@ -339,76 +328,64 @@ describe("@UI.layout", () => {
   });
 
   describe("publishing", () => {
-    it("publishes a layout with @Meta.form under its own id, with the submission's schema", async () => {
+    it("publishes a layout as its form's ui.json, beside the form's schema", async () => {
       const { paths, json } = await emit(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout { ${everything} }
       `);
       expect(paths.filter((p) => p.startsWith("forms/"))).toEqual([
-        "forms/contacts-layout/index.json",
-        "forms/contacts-layout/manifest.json",
-        "forms/contacts-layout/schema.json",
-        "forms/contacts-layout/ui.json",
+        "forms/contacts/index.json",
+        "forms/contacts/manifest.json",
+        "forms/contacts/schema.json",
+        "forms/contacts/ui.json",
       ]);
-      expect(json("forms/contacts-layout/manifest.json")).toMatchObject({
-        form: { id: "contacts-layout", formName: "Contacts" },
-        submission: { id: "contacts" },
+      expect(json("forms/contacts/manifest.json")).toMatchObject({
+        form: { id: "contacts", formName: "Contacts" },
       });
-      expect(json("forms/contacts-layout/schema.json").$id).toEqual(
+      expect(json("forms/contacts/schema.json").$id).toEqual(
         "contacts/schema.json",
       );
-      expect(json("forms/contacts-layout/index.json").id).toEqual(
-        "contacts-layout",
-      );
-    });
-
-    it("checks a layout without @Meta.form but publishes nothing for it", async () => {
-      const { paths, diagnostics } = await emit(`
-        @UI.layout(Contacts)
-        model ContactsLayout { people: { payee: Contacts.payee; }; }
-      `);
-      expect(paths.some((p) => p.startsWith("forms/"))).toBe(false);
-      expect(diagnostics.map((d: Diagnostic) => d.code)).toContain(
-        "simpler-forms/layout-unplaced",
+      expect(json("forms/contacts/ui.json").elements[0].label).toEqual(
+        "people",
       );
     });
 
     it("keeps layout models out of JSON Schema output", async () => {
       const { paths } = await emit(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout { ${everything} }
       `);
       expect(
-        paths.filter(
-          (p) => /layout/i.test(p) && !p.startsWith("forms/contacts-layout/"),
-        ),
+        paths.filter((p) => /layout/i.test(p) && !p.startsWith("forms/")),
       ).toEqual([]);
       expect(paths.every((p) => !p.includes("ContactsLayout"))).toBe(true);
     });
 
-    it("requires a layout's @Meta.form to give an id", async () => {
-      expectDiagnostics(
-        await diagnose(`
-          @Meta.form(#{ formName: "Contacts" })
-          @UI.layout(Contacts)
-          model ContactsLayout { ${everything} }
-        `),
-        { code: "simpler-forms/layout-form-id" },
-      );
+    it("rejects two layouts of one form, and publishes neither", async () => {
+      const { paths, diagnostics } = await emit(`
+        @UI.layout(Contacts)
+        model ContactsLayout { ${everything} }
+
+        @UI.layout(Contacts)
+        model OtherLayout { ${everything} }
+      `);
+      expect(
+        diagnostics
+          .map((d: Diagnostic) => d.code)
+          .filter((c: string) => c === "simpler-forms/layout-duplicate"),
+      ).toHaveLength(2);
+      expect(paths.some((p) => p.startsWith("forms/"))).toBe(false);
     });
 
-    it("rejects a form presenting a model with no submission", async () => {
+    it("rejects a layout of a model with no @Meta.form", async () => {
       expectDiagnostics(
         await diagnose(`
-          @Meta.form(#{ id: "person-sheet", formName: "Person" })
           @UI.layout(Person)
           model PersonLayout { person: { name: Person.name; title: Person.title; address: Person.address; }; }
         `),
         {
-          code: "simpler-forms/layout-form-without-submission",
-          message: /presents Person, which has no @Meta.submission/,
+          code: "simpler-forms/layout-not-form",
+          message: /presents Person, which has no @Meta.form/,
         },
       );
     });
@@ -560,7 +537,6 @@ describe("@UI.layout", () => {
   describe("conditions", () => {
     it("emits a layout's condition as a rule, replacing the field's own", async () => {
       const layout = await ui(`
-        ${form()}
         @UI.layout(Contacts)
         model ContactsLayout {
           people: {
@@ -701,7 +677,7 @@ describe("conditions that can hide a required field", () => {
     namespace Forms {
       enum YesNo { yes, no }
       model Changes { pd?: YesNo; org?: YesNo; }
-      @Meta.submission(#{ id: "changes" })
+      @Meta.form(#{ id: "changes", formName: "Changes" })
       model ChangeForm {
         changes?: Changes;
         @Validation.requiredWhenPath("changes.pd", YesNo.yes)

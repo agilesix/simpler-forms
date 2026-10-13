@@ -52,26 +52,17 @@ model QuestionMeta {
 }
 
 /**
- * What a form collects and submits, shared by every presentation of it. A platform's own
- * identity for the form, such as its name and version in a submission system, belongs to
- * that platform's library, as a decorator of its own on the same model.
- */
-model SubmissionMeta {
-  /** Semantic id — e.g. "key-contacts". Also the published schema's id. */
-  id: string;
-}
-
-/**
- * One presentation of a submission, published under its own id. Everything about the
- * submission comes from the model it presents, so it cannot be restated here.
+ * A form's identity. A platform's own identity for the form, such as its name and version
+ * in a submission system, belongs to that platform's library, as a decorator of its own on
+ * the same model.
  */
 model FormMeta {
-  /** Defaults to the submission's id when the form presents its own model. */
-  id?: string;
+  /** Semantic id — e.g. "key-contacts". Also the published schema's id and directory. */
+  id: string;
 
   formName: string;
 
-  /** Revision of this presentation, not of the submission it presents. */
+  /** Revision of the form. */
   revision?: string;
 }
 

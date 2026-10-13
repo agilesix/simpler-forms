@@ -87,7 +87,7 @@ export type Condition = AtomicCondition | AnyCondition;
 export interface Block {
   /** A Model for object-valued blocks, a Scalar for single-value questions. */
   model: Model | Scalar;
-  kind: "question" | "submission";
+  kind: "question" | "form";
   /** True when the block is a single value rather than an object. */
   scalar: boolean;
   id: string;
@@ -128,13 +128,13 @@ export function readBlock(
 ): Block | undefined {
   const q = g(program, stateKeys.questionMeta, model) as
     Record<string, unknown> | undefined;
-  const s = g(program, stateKeys.submissionMeta, model) as
+  const s = g(program, stateKeys.formMeta, model) as
     Record<string, unknown> | undefined;
   if (!q && !s) return undefined;
   const meta = (q ?? s)!;
   return {
     model,
-    kind: q ? "question" : "submission",
+    kind: q ? "question" : "form",
     scalar: model.kind === "Scalar",
     id: String(meta.id),
     meta,
@@ -150,21 +150,20 @@ export function readBlock(
   };
 }
 
-/** One presentation an applicant opens, from `@Meta.form`. */
+/** A form's identity, from `@Meta.form`. */
 export interface FormMeta {
-  /** Absent when the form presents its own model, whose submission id it then takes. */
-  id?: string;
+  id: string;
   formName: string;
   revision?: string;
 }
 
 /** `@Meta.form` on a model, if it has one. */
 export const modelFormMeta = (p: Program, model: Model) =>
-  g(p, stateKeys.presentationMeta, model) as FormMeta | undefined;
+  g(p, stateKeys.formMeta, model) as FormMeta | undefined;
 
 /** Every model with `@Meta.form`, in the order the decorators ran. */
 export const allFormMetas = (p: Program) =>
-  p.stateMap(stateKeys.presentationMeta) as Map<Model, FormMeta>;
+  p.stateMap(stateKeys.formMeta) as Map<Model, FormMeta>;
 
 /** Every `@UI.layout` model, with the model it presents. */
 export const allLayouts = (p: Program) =>
@@ -466,12 +465,12 @@ export function modelProperties(model: Model): ModelProperty[] {
 /** Properties in @UI.order if given, else declaration order; omitted ones dropped. */
 export function orderedProps(program: Program, block: Block): ModelProperty[] {
   if (block.model.kind !== "Model") return [];
-  // A submission may extend a question to preserve flat response fields with explicit semantic
+  // A form may extend a question to preserve flat response fields with explicit semantic
   // lineage. Its inherited fields remain its members for presentation.
   // Question artifacts themselves keep their local surface and compose their base through
   // JSON Schema `allOf`, so walking inherited properties there would duplicate that surface.
   const candidates =
-    block.kind === "submission"
+    block.kind === "form"
       ? modelProperties(block.model)
       : [...block.model.properties.values()];
   const props = candidates.filter((p) => !propOmit(program, p));

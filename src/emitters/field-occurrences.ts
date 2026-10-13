@@ -41,7 +41,7 @@ export function emitFieldOccurrences(
   program: Program,
   form: Block,
 ): FieldOccurrence[] {
-  if (form.kind !== "submission" || form.model.kind !== "Model") return [];
+  if (form.kind !== "form" || form.model.kind !== "Model") return [];
 
   const found = new Map<string, FieldOccurrence>();
 

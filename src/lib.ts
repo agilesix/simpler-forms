@@ -41,17 +41,16 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Question id "${"id"}" names a form. Questions are named for what they mean; present a question differently in one form with that form's @UI.layout.`,
       },
     },
-    "layout-form-without-submission": {
+    "layout-not-form": {
       severity: "error",
       messages: {
-        default: paramMessage`${"name"} has @Meta.form but no @Meta.submission, and is not a @UI.layout of a model that has one.`,
-        layout: paramMessage`${"name"} presents ${"presented"}, which has no @Meta.submission. A form needs a submission to publish.`,
+        default: paramMessage`${"name"} presents ${"presented"}, which has no @Meta.form. A layout presents a form.`,
       },
     },
-    "layout-form-id": {
+    "layout-duplicate": {
       severity: "error",
       messages: {
-        default: paramMessage`${"name"} presents ${"submission"} and needs its own id: give its @Meta.form an id.`,
+        default: paramMessage`${"form"} is presented by both ${"first"} and ${"second"}. A form has one layout; remove one of them.`,
       },
     },
     "layout-ref-root": {
@@ -141,12 +140,6 @@ export const $lib = createTypeSpecLibrary({
       severity: "warning",
       messages: {
         default: paramMessage`${"name"}'s condition replaces the one ${"field"} declares itself. Restate that condition here if both should hold.`,
-      },
-    },
-    "layout-form-id-duplicate": {
-      severity: "error",
-      messages: {
-        default: paramMessage`Form id "${"id"}" is published by both ${"first"} and ${"second"}; give one of them another id.`,
       },
     },
     "duplicate-block-id": {
@@ -359,8 +352,7 @@ export const $lib = createTypeSpecLibrary({
   },
   state: {
     questionMeta: {},
-    submissionMeta: {},
-    presentationMeta: {},
+    formMeta: {},
     layout: {},
     layoutField: {},
     flatten: {},

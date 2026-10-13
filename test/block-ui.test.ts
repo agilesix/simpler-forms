@@ -6,7 +6,7 @@ import { Tester, formMeta } from "./tester.js";
 /** Compile a specification and lay out the one form it declares. */
 const formUi = async (code: string): Promise<UiNode> => {
   const { program } = await Tester.compile(code);
-  const form = allBlocks(program).find((block) => block.kind === "submission");
+  const form = allBlocks(program).find((block) => block.kind === "form");
   if (!form) throw new Error("fixture declares no form");
   return emitBlockUi(program, form);
 };

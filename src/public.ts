@@ -25,10 +25,10 @@ export {
 } from "./model.js";
 
 // --- forms ----------------------------------------------------------------
-// Each `@Meta.form` is published as `forms/<id>/`, so a target emitter writing a form's
-// artifacts beside the others writes them once per form, not once per submission.
+// Each `@Meta.form` is published as `forms/<id>/`, and a target emitter writing a form's
+// artifacts beside the others writes them there.
 export {
-  /** Every publishable `@Meta.form`, with the submission it presents. */
+  /** Every publishable `@Meta.form`, with the layout that presents it, if any. */
   resolveForms,
   type PublishedForm,
 } from "./forms.js";

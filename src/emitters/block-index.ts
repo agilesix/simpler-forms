@@ -9,8 +9,7 @@ export function emitBlockIndex(
 ): Record<string, unknown> {
   return {
     id: block.id,
-    // A submission is catalogued as the form it is published as.
-    kind: block.kind === "question" ? "question" : "form",
+    kind: block.kind,
     classification:
       block.kind === "question" ? block.classification : undefined,
     name: block.label ?? block.id,

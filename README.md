@@ -93,7 +93,7 @@ under the same name are an error, and so is one name emitted two ways.
 ```
 lib/            TypeSpec declarations — the decorator vocabulary
   main.tsp        the entry point a consumer imports
-  meta.tsp        @Meta.*   — question, submission, form, tags, entities, role
+  meta.tsp        @Meta.*   — question, form, tags, entities, role
   ui.tsp          @UI.*     — layouts, labels, widgets, conditions
   validation.tsp  @Validation.*
   mapping.tsp     @Mapping.* — links to other representations of a response
@@ -103,7 +103,7 @@ src/            the library implementation
   decorators/     decorator entry points, one module per namespace
   model.ts        typed accessors over decorator state
   mapping.ts      resolveMapping — a form's links in one mapping, through what it composes
-  forms.ts        which @Meta.form models are published, and under which ids
+  forms.ts        which @Meta.form models are published, and with which layout
   layout.ts       resolves a @UI.layout's references, placements and conditions
   validate.ts     $onValidate — cross-cutting checks reported as diagnostics
   linter.ts       lint rules
@@ -182,16 +182,13 @@ model PocName {
 }
 ```
 
-**A submission is the data; a form is one way of presenting it.** `@Meta.submission` holds
-what a form collects and submits: the schema, its validation and its mappings.
-`@Meta.form` is one presentation an applicant opens,
-published under its own id as `forms/<id>/`. A simple form is its own presentation, the way
-a question is: its fields' `@UI.*` decorators lay it out, and each object field becomes a
-labelled group.
+**A form is the data an applicant submits.** `@Meta.form` goes on the model that holds it:
+the schema, its validation and its mappings, published under the form's id as
+`forms/<id>/`. A simple form lays itself out, the way a question does: its fields' `@UI.*`
+decorators lay it out, and each object field becomes a labelled group.
 
 ```tsp
-@Meta.submission(#{ id: "key-contacts" })
-@Meta.form(#{ formName: "KEY CONTACTS" })
+@Meta.form(#{ id: "key-contacts", formName: "KEY CONTACTS" })
 model KeyContacts {
   @UI.label("Applicant Organization Name")
   applicantOrganizationName: OrganizationName;
@@ -203,10 +200,10 @@ model KeyContacts {
 
 A platform's own identity for a form, such as the name and version a submission system knows
 it by, is that platform's vocabulary. Its library declares a decorator of its own for it, on
-the same model, rather than adding to `@Meta.submission`.
+the same model, rather than adding to `@Meta.form`.
 
-**A layout presents a submission another way.** A `@UI.layout` model points at the
-submission's fields with typed references, so a misspelled field is a compiler error. Its
+**A layout presents a form another way.** A `@UI.layout` model points at the form's fields
+with typed references, so a misspelled field is a compiler error. Its
 top-level properties are sections, in order. Inside one, a field reference places that
 field as its model lays it out; a model with `@UI.field` lays out one field's contents,
 listing what changes and leaving the rest in their declared order; a model without it is a
@@ -219,7 +216,6 @@ model PersonWithoutCountyOrProvince {
   @UI.omit province: Person.address::type.province;
 }
 
-@Meta.form(#{ id: "epa-key-contacts", formName: "EPA KEY CONTACTS FORM" })
 @UI.layout(EPAKeyContacts)
 model EPAKeyContactsLayout {
   @UI.label("Authorized Representative")
@@ -234,10 +230,10 @@ model EPAKeyContactsLayout {
 
 An entry can set a label, help text (`@UI.helpText` or a doc comment), a widget, `@UI.omit`,
 `@UI.flatten` to place a field's children without their group, and one display condition
-whose source is a typed reference resolved the same way. Validation stays on the submission,
-which every layout shares, so a `@Validation.*` decorator on an entry is an error. Each
-layout with a `@Meta.form` is published under its own id with the submission's schema; one
-without is checked but not published.
+whose source is a typed reference resolved the same way. Validation stays on the form, so a
+`@Validation.*` decorator on an entry is an error. The layout is published as the form's
+`ui.json`, in place of the one its fields would give. A form has at most one layout, and a
+layout presents a model with `@Meta.form`.
 
 **Mappings link a form to its other representations.** A response often has to be written
 in another shape too: an XML document, a CSV row. `@Mapping.to` links a model or property to

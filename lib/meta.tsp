@@ -15,14 +15,9 @@ namespace SimplerForms.Meta;
 extern dec question(target: Model | Scalar, meta: valueof QuestionMeta);
 
 /**
- * The data a form collects and submits. Publishes the model's JSON Schema, and is what
- * its mappings and validation hang off.
- */
-extern dec submission(target: Model, meta: valueof SubmissionMeta);
-
-/**
- * A presentation an applicant opens. Goes on a submission model that is its own layout,
- * or on a `@UI.layout` model presenting another model's submission.
+ * A form an applicant opens: the data it collects and submits. Publishes the model's JSON
+ * Schema under `forms/<id>/`, and is what its mappings and validation hang off. Its fields'
+ * `@UI.*` decorators lay it out, unless a `@UI.layout` model presents it.
  */
 extern dec form(target: Model, meta: valueof FormMeta);
 
