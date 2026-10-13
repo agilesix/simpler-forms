@@ -53,6 +53,66 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`"${"value"}" is not a member of ${"enumName"}, so this condition is constant -- never holding, or always holding if it is negated. Members: ${"members"}.`,
       },
     },
+    "mapping-target-undeclared": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} is linked in mapping ${"mapping"} from ${"enumName"}, which no namespace declares with @Mapping.targets, so no emitter is known to produce it. Declare the program's mappings once, e.g. @Mapping.targets(${"enumName"}).`,
+      },
+    },
+    "mapping-duplicate": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has more than one @Mapping.to for mapping ${"mapping"}. A model or property corresponds to one thing per mapping.`,
+      },
+    },
+    "mapping-path-unresolved": {
+      severity: "error",
+      messages: {
+        default: paramMessage`@Mapping.path "${"path"}" on ${"name"} does not resolve: ${"reason"}.`,
+      },
+    },
+    "mapping-target-out-of-context": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"source"} is linked to ${"target"}, which is not a property of ${"context"}, the model its parent maps to. Link the parent to the model that holds it, or link this path from the composing model with @Mapping.path.`,
+      },
+    },
+    "mapping-type-mismatch": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"source"} is linked to ${"target"}, but ${"reason"}.`,
+      },
+    },
+    "mapping-cardinality-mismatch": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"source"} is ${"sourceShape"} but ${"target"} is ${"targetShape"}.`,
+      },
+    },
+    "mapping-target-duplicate": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, both ${"first"} and ${"second"} are linked to ${"target"}. Each target property takes its value from one source.`,
+      },
+    },
+    "mapping-from-unresolved": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} is filled from ${"source"}, which is not a field of ${"context"}, the field its parent is filled from.`,
+      },
+    },
+    "mapping-from-cardinality-mismatch": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} is ${"targetShape"} but ${"source"}, which fills it, is ${"sourceShape"}.`,
+      },
+    },
+    "mapping-from-wrapper": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} has no field of its own: it wraps fields of ${"context"}. Rules keyed by the response's properties cannot write an element with no property behind it, so its contents are left out.`,
+      },
+    },
     "widget-not-declared": {
       severity: "error",
       messages: {
@@ -232,6 +292,10 @@ export const $lib = createTypeSpecLibrary({
     calculationMaterialization: {},
     evaluationOrder: {},
     totals: {},
+    mappingTargets: {},
+    mappedTo: {},
+    mappingPaths: {},
+    mappedFrom: {},
   },
 } as const);
 
