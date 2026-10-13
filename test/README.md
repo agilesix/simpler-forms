@@ -11,11 +11,11 @@ reads a file from disk or depends on any particular corpus of forms.
 | `mapping.test.ts`         |   380 | `resolveMapping`, and every `@Mapping.*` diagnostic          |
 | `mapping-from.test.ts`    |   176 | `resolveMappingFrom`: `@Mapping.from` on the target          |
 | `property-casing.test.ts` |   252 | The `property-casing` emitter option, end to end             |
-| `forms.test.ts`           |   152 | `@Meta.submission` and `@Meta.form`, and what each publishes |
+| `forms.test.ts`           |   142 | `@Meta.submission` and `@Meta.form`, and what each publishes |
 | `layout.test.ts`          |   783 | `@UI.layout` entries, references, conditions and diagnostics |
 | `block-ui.test.ts`        |   260 | A form's own presentation in `ui.json`                       |
 | `catalogue.test.ts`       |   127 | `@Meta.tags` and `@Meta.entities`, and the catalogue entry   |
-| `tester.ts`               |    65 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()`  |
+| `tester.ts`               |    61 | Shared harness — `Tester`, `form()`, `bank()`, `formMeta()`  |
 
 ## Tests that were not brought over, and why
 

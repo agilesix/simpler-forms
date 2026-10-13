@@ -16,7 +16,7 @@ extern dec question(target: Model | Scalar, meta: valueof QuestionMeta);
 
 /**
  * The data a form collects and submits. Publishes the model's JSON Schema, and is what
- * its XML mapping, validation and Grants.gov identity hang off.
+ * its mappings and validation hang off.
  */
 extern dec submission(target: Model, meta: valueof SubmissionMeta);
 

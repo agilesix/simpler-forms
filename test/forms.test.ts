@@ -66,11 +66,11 @@ describe("@Meta.submission and @Meta.form", () => {
     );
   });
 
-  it("rejects a form restating a submission fact, as a type error", async () => {
+  it("rejects a platform's identity for the form, as a type error", async () => {
     const diagnostics = await Tester.diagnose(
       form(`
-        @Meta.submission(#{ id: "contact-form", shortFormName: "C", formVersion: "1.0" })
-        @Meta.form(#{ formName: "Contact", formVersion: "1.1" })
+        @Meta.submission(#{ id: "contact-form", formVersion: "1.0" })
+        @Meta.form(#{ formName: "Contact" })
         model ContactForm { name?: string; }
       `),
     );
@@ -84,7 +84,7 @@ describe("@Meta.submission and @Meta.form", () => {
           ${formMeta("contact-form")}
           model ContactForm { name?: string; }
 
-          @Meta.submission(#{ id: "other-form", shortFormName: "O", formVersion: "1.0" })
+          @Meta.submission(#{ id: "other-form" })
           @Meta.form(#{ id: "contact-form", formName: "Other" })
           model OtherForm { name?: string; }
         `),
@@ -99,12 +99,7 @@ describe("@Meta.submission and @Meta.form", () => {
   it("writes the form and its submission separately in the manifest", async () => {
     const { json } = await emit(
       emitted(`
-        @Meta.submission(#{
-          id: "contact-form",
-          shortFormName: "Contact",
-          formVersion: "2.0",
-          ombNumber: "0000-0000",
-        })
+        @Meta.submission(#{ id: "contact-form" })
         @Meta.form(#{ formName: "CONTACT FORM", revision: "b" })
         model ContactForm { name?: string; }
       `),
@@ -112,12 +107,7 @@ describe("@Meta.submission and @Meta.form", () => {
     expect(json("forms/contact-form/manifest.json")).toEqual({
       contract: "resolved-form-package/v1",
       form: { id: "contact-form", formName: "CONTACT FORM", revision: "b" },
-      submission: {
-        id: "contact-form",
-        shortFormName: "Contact",
-        formVersion: "2.0",
-        ombNumber: "0000-0000",
-      },
+      submission: { id: "contact-form" },
       artifacts: {
         "schema.json": "generated",
         "ui.json": "generated",
@@ -130,7 +120,7 @@ describe("@Meta.submission and @Meta.form", () => {
   it("publishes no package for a submission with no form", async () => {
     const { paths } = await emit(
       emitted(`
-        @Meta.submission(#{ id: "contact-form", shortFormName: "C", formVersion: "1.0" })
+        @Meta.submission(#{ id: "contact-form" })
         model ContactForm { name?: string; }
       `),
     );

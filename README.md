@@ -183,14 +183,14 @@ model PocName {
 ```
 
 **A submission is the data; a form is one way of presenting it.** `@Meta.submission` holds
-what a form collects and submits: the schema, its validation and mappings, and the
-Grants.gov identity, version included. `@Meta.form` is one presentation an applicant opens,
+what a form collects and submits: the schema, its validation and its mappings.
+`@Meta.form` is one presentation an applicant opens,
 published under its own id as `forms/<id>/`. A simple form is its own presentation, the way
 a question is: its fields' `@UI.*` decorators lay it out, and each object field becomes a
 labelled group.
 
 ```tsp
-@Meta.submission(#{ id: "key-contacts", shortFormName: "Key_Contacts", formVersion: "2.0" })
+@Meta.submission(#{ id: "key-contacts" })
 @Meta.form(#{ formName: "KEY CONTACTS" })
 model KeyContacts {
   @UI.label("Applicant Organization Name")
@@ -200,6 +200,10 @@ model KeyContacts {
   keyContacts: KeyContact[];
 }
 ```
+
+A platform's own identity for a form, such as the name and version a submission system knows
+it by, is that platform's vocabulary. Its library declares a decorator of its own for it, on
+the same model, rather than adding to `@Meta.submission`.
 
 **A layout presents a submission another way.** A `@UI.layout` model points at the
 submission's fields with typed references, so a misspelled field is a compiler error. Its

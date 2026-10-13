@@ -57,9 +57,5 @@ export const form = (body: string) => `
  * Metadata every form needs, so a fixture can say only what it is testing: a submission
  * that presents itself.
  */
-export const formMeta = (id: string) => `@Meta.submission(#{
-    id: "${id}",
-    shortFormName: "${id}",
-    formVersion: "1.0",
-  })
+export const formMeta = (id: string) => `@Meta.submission(#{ id: "${id}" })
   @Meta.form(#{ formName: "${id}" })`;

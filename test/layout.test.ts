@@ -61,7 +61,7 @@ const spec = (layouts: string) => `
 
   @JsonSchema.jsonSchema
   namespace Forms {
-    @Meta.submission(#{ id: "contacts", shortFormName: "C", formVersion: "1.0" })
+    @Meta.submission(#{ id: "contacts" })
     model Contacts {
       /** Individual authorized to accept payments. */
       @UI.label("Payee")
@@ -701,7 +701,7 @@ describe("conditions that can hide a required field", () => {
     namespace Forms {
       enum YesNo { yes, no }
       model Changes { pd?: YesNo; org?: YesNo; }
-      @Meta.submission(#{ id: "changes", shortFormName: "C", formVersion: "1.0" })
+      @Meta.submission(#{ id: "changes" })
       model ChangeForm {
         changes?: Changes;
         @Validation.requiredWhenPath("changes.pd", YesNo.yes)
