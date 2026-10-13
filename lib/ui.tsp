@@ -29,7 +29,19 @@ extern dec overrides(
 
 extern dec label(target: Model | Scalar | ModelProperty, text: valueof string);
 extern dec helpText(target: ModelProperty, text: valueof string);
-extern dec widget(target: ModelProperty, widget: valueof WidgetName);
+/**
+ * Declare the widgets a program's renderers provide, as `@versioned` declares its versions.
+ * The set belongs to the consuming program, not to this library: declare it once, on any
+ * namespace, and `@UI.widget` accepts its members. A member's string value, when it has
+ * one, is the name emitted; otherwise its name is.
+ */
+extern dec widgets(target: Namespace, widgets: Enum);
+
+/**
+ * Render the property with a widget declared by `@UI.widgets`. On a property whose type is
+ * a question with fields of its own, the widget applies to the group those fields lay out as.
+ */
+extern dec widget(target: ModelProperty, widget: EnumMember);
 /** Render source-approved checkbox choices while preserving one encoded wire value. */
 extern dec encodedCheckboxGroup(
   target: ModelProperty,

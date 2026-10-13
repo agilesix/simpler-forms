@@ -691,6 +691,44 @@ describe("$onValidate", () => {
     });
   });
 
+  describe("widget-not-declared", () => {
+    it("rejects a widget from an enum no namespace declares with @UI.widgets", async () => {
+      const diagnostics = await Tester.diagnose(
+        form(`
+          enum Widget { Collapsible }
+
+          ${formMeta("undeclared-widget")}
+          model UndeclaredWidget {
+            @UI.widget(Widget.Collapsible)
+            note?: string;
+          }
+        `),
+      );
+      expectDiagnostics(diagnostics, {
+        code: "simpler-forms/widget-not-declared",
+      });
+    });
+
+    it("accepts a widget from the program's declared set", async () => {
+      expectDiagnosticEmpty(
+        await Tester.diagnose(
+          form(`
+            @UI.widgets(Widget)
+            namespace Rendering {
+              enum Widget { Collapsible }
+            }
+
+            ${formMeta("declared-widget")}
+            model DeclaredWidget {
+              @UI.widget(Rendering.Widget.Collapsible)
+              note?: string;
+            }
+          `),
+        ),
+      );
+    });
+  });
+
   describe("section-orphan", () => {
     it("rejects a field in no section", async () => {
       const diagnostics = await Tester.diagnose(

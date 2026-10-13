@@ -180,6 +180,14 @@ export const propHelpText = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.helpText, prop) as string | undefined;
 export const propWidget = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.widget, prop) as string | undefined;
+
+/** Every enum a namespace declares with `@UI.widgets`: the widgets the program provides. */
+export const declaredWidgetSets = (p: Program) =>
+  new Set(p.stateMap(stateKeys.widgets).values() as Iterable<Enum>);
+
+/** Each property given a `@UI.widget`, with the enum member it named. */
+export const widgetMembers = (p: Program) =>
+  p.stateMap(stateKeys.widgetMember) as Map<ModelProperty, EnumMember>;
 export const propEncodedCheckboxGroup = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.encodedCheckboxGroup, prop) as
     Record<string, unknown> | undefined;

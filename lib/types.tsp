@@ -104,29 +104,6 @@ enum EntityName {
   generic,
 }
 
-/** Mirrors the SGG frontend's WidgetTypes union. */
-enum WidgetName {
-  Attachment,
-  AttachmentArray,
-  Checkbox,
-  EncodedCheckboxGroup,
-  Text,
-  TextArea,
-  Radio,
-  Select,
-  MultiSelect,
-  Print,
-  PrintAttachment,
-  FieldList,
-  Table,
-  Budget424aSectionA,
-  Budget424aSectionB,
-  Budget424aSectionC,
-  Budget424aSectionD,
-  Budget424aSectionE,
-  Budget424aSectionF,
-}
-
 enum Op {
   Sum,
   Subtract,

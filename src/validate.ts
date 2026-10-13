@@ -35,6 +35,8 @@ import {
   propVisibleWhen,
   propValidationConstraintsWhen,
   scalarType,
+  declaredWidgetSets,
+  widgetMembers,
 } from "./model.js";
 
 /**
@@ -44,7 +46,7 @@ import {
  * one exists because the defect it catches is currently invisible: a question named after a
  * form, two blocks colliding on one output path, a condition comparing against a value the
  * source enum does not have, a calculation that depends on itself, a field that is required
- * but can be hidden, and a field in no section.
+ * but can be hidden, a field in no section, and a widget no renderer was declared to provide.
  */
 export function $onValidate(program: Program): void {
   const blocks = allBlocks(program);
@@ -63,6 +65,7 @@ export function $onValidate(program: Program): void {
     }
   }
 
+  checkWidgets(program);
   checkDateOrders(program);
   checkCardinalityPaths(program);
   checkCalculationCycles(program, blocks);
@@ -282,6 +285,27 @@ function checkDateOrders(program: Program): void {
     for (const child of namespace.namespaces.values()) visit(child);
   };
   visit(program.getGlobalNamespaceType());
+}
+
+/**
+ * A widget is a contract with the program's renderers, which this library knows nothing about,
+ * so the program declares the set it provides with `@UI.widgets`. A member of any other enum
+ * would be emitted under a name no renderer has promised to handle.
+ */
+function checkWidgets(program: Program): void {
+  const declared = declaredWidgetSets(program);
+  for (const [prop, member] of widgetMembers(program)) {
+    if (declared.has(member.enum)) continue;
+    reportDiagnostic(program, {
+      code: "widget-not-declared",
+      target: prop,
+      format: {
+        name: prop.name,
+        widget: member.name,
+        enumName: member.enum.name,
+      },
+    });
+  }
 }
 
 function checkEncodedCheckboxGroup(

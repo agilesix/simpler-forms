@@ -53,6 +53,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`"${"value"}" is not a member of ${"enumName"}, so this condition is constant -- never holding, or always holding if it is negated. Members: ${"members"}.`,
       },
     },
+    "widget-not-declared": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} uses widget ${"widget"} from ${"enumName"}, which no namespace declares with @UI.widgets, so no renderer is known to provide it. Declare the program's widgets once, e.g. @UI.widgets(${"enumName"}).`,
+      },
+    },
     "condition-path-unresolved": {
       severity: "error",
       messages: {
@@ -197,7 +203,9 @@ export const $lib = createTypeSpecLibrary({
     responseRole: {},
     label: {},
     helpText: {},
+    widgets: {},
     widget: {},
+    widgetMember: {},
     encodedCheckboxGroup: {},
     sections: {},
     section: {},

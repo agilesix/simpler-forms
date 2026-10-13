@@ -131,6 +131,31 @@ change here.
 validation and emitted files are contributed by its own TypeSpec library listed alongside
 this one in `tspconfig.yaml`, rather than by a plugin interface here.
 
+**Widgets are the consumer's vocabulary.** Which widgets exist is a contract between a
+program and its renderers, so this library ships no widget list. A program declares its own
+set once with `@UI.widgets`, the way `@versioned` declares versions, and `@UI.widget` then
+takes a member of that enum. A member of an enum no namespace declares is an error. The
+emitted name is the member's string value when it has one, and its name otherwise:
+
+```tsp
+@UI.widgets(Widget)
+namespace Rendering {
+  enum Widget {
+    Text,
+    FieldList,
+    Attachment: "ApplicationAttachment",
+  }
+}
+
+model Contacts {
+  @UI.widget(Rendering.Widget.FieldList)
+  contacts: Contact[];
+}
+```
+
+On a property whose type is a question with fields of its own, the widget is emitted on the
+group those fields lay out as.
+
 ## License
 
 [MIT](./LICENSE.md). Copyright (c) 2026 Agile Six Applications, Inc.
