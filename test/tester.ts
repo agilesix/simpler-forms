@@ -16,10 +16,28 @@ export const Tester = createTester(
   },
 );
 
-/** The preamble every fixture needs: the library, and a namespace to declare blocks in. */
+/**
+ * The tags and entities a fixture's questions are catalogued by. A program declares its own;
+ * these stand in for one.
+ */
+const catalogue = `
+  @Meta.tags(TagName)
+  @Meta.entities(EntityName)
+  namespace Catalogue {
+    enum TagName { address, attachment, generic, money, name, narrative, person, role }
+    enum EntityName { generic, poc, primaryOrg }
+  }
+`;
+
+/**
+ * The preamble every fixture needs: the library, the program's catalogue, and a namespace to
+ * declare blocks in.
+ */
 export const bank = (body: string) => `
   import "simpler-forms";
   using SimplerForms;
+  using Catalogue;
+  ${catalogue}
   namespace QuestionBank {
     ${body}
   }
@@ -28,6 +46,8 @@ export const bank = (body: string) => `
 export const form = (body: string) => `
   import "simpler-forms";
   using SimplerForms;
+  using Catalogue;
+  ${catalogue}
   namespace Forms {
     ${body}
   }

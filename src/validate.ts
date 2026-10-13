@@ -35,6 +35,10 @@ import {
   scalarType,
   declaredWidgetSets,
   widgetMembers,
+  declaredTagSets,
+  tagMembers,
+  declaredEntitySets,
+  entityMembers,
   allMappingLinks,
   allMappingPathLinks,
   declaredMappingSets,
@@ -75,6 +79,7 @@ export function $onValidate(program: Program): void {
   }
 
   checkWidgets(program);
+  checkCatalogue(program);
   checkMappings(program);
   checkDateOrders(program);
   checkCardinalityPaths(program);
@@ -312,6 +317,42 @@ function checkWidgets(program: Program): void {
       format: {
         name: prop.name,
         widget: member.name,
+        enumName: member.enum.name,
+      },
+    });
+  }
+}
+
+/**
+ * Tags and entities are the program's catalogue vocabulary, declared with `@Meta.tags` and
+ * `@Meta.entities` as widgets are with `@UI.widgets`. A member of any other enum would be
+ * catalogued under a heading the program never named.
+ */
+function checkCatalogue(program: Program): void {
+  const tagSets = declaredTagSets(program);
+  for (const [type, members] of tagMembers(program)) {
+    for (const member of members) {
+      if (tagSets.has(member.enum)) continue;
+      reportDiagnostic(program, {
+        code: "tag-not-declared",
+        target: type,
+        format: {
+          name: type.name,
+          tag: member.name,
+          enumName: member.enum.name,
+        },
+      });
+    }
+  }
+  const entitySets = declaredEntitySets(program);
+  for (const [type, member] of entityMembers(program)) {
+    if (entitySets.has(member.enum)) continue;
+    reportDiagnostic(program, {
+      code: "entity-not-declared",
+      target: type,
+      format: {
+        name: type.name,
+        entity: member.name,
         enumName: member.enum.name,
       },
     });

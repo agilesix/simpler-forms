@@ -27,10 +27,25 @@ extern dec submission(target: Model, meta: valueof SubmissionMeta);
 extern dec form(target: Model, meta: valueof FormMeta);
 
 /**
- * Catalogue markers. Applies to a question, and also to a bare constrained scalar that
- * carries no question identity of its own — a money-shaped string, a bounded count.
+ * Declare the tags a program catalogues its questions by, as `@UI.widgets` declares its
+ * widgets. The set belongs to the consuming program, not to this library: declare it once,
+ * on any namespace, and `@Meta.tag` accepts its members.
  */
-extern dec tag(target: Model | Scalar, ...tags: valueof TagName[]);
+extern dec tags(target: Namespace, tags: Enum);
+
+/**
+ * Declare the entities a program's questions are asked about, as `@Meta.tags` declares its
+ * tags. A question's `entity` is a member of this set.
+ */
+extern dec entities(target: Namespace, entities: Enum);
+
+/**
+ * Catalogue markers, each a member of an enum declared with `@Meta.tags`. Applies to a
+ * question, and also to a bare constrained scalar that carries no question identity of its
+ * own — a money-shaped string, a bounded count. A member's string value, when it has one, is
+ * the tag emitted; otherwise its name is.
+ */
+extern dec tag(target: Model | Scalar, ...tags: EnumMember[]);
 
 /**
  * Why a block or field exists in a response. Deliberately separate from semantic
