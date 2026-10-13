@@ -298,6 +298,10 @@ function mergeSchema(a: Json, b: Json): Json {
   for (const [key, value] of Object.entries(b)) {
     if (key === "allOf" && Array.isArray(out.allOf)) {
       out.allOf = [...out.allOf, ...value];
+    } else if (key === "required" && Array.isArray(out.required)) {
+      // Requiredness only adds: a model-level @Validation.requiredPaths keeps what the model
+      // already requires.
+      out.required = [...new Set([...out.required, ...value])];
     } else if (
       key === "properties" &&
       isObject(out.properties) &&
