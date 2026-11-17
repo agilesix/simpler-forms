@@ -105,6 +105,11 @@ published under `question-bank/<id>/`, and a form that composes it refers to its
 - Its doc comment is its description; `@UI.label` and `@UI.helpText` are how it reads in a form.
 - A property whose type is a question takes the question's label unless it sets its own.
 
+A question can be an object (a model), a single value (a scalar) or a code list (an enum). A
+code list published as a question, such as a list of states, is written once, and the
+questions that use it refer to it. An enum without `@Meta.question` is copied into each
+schema that uses it, as before.
+
 ## Forms
 
 `@Meta.form` goes on the model holding the data an applicant submits, and publishes it under

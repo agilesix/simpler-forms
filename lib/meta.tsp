@@ -12,7 +12,7 @@ namespace SimplerForms.Meta;
  * A question's portable identity. The `entity` field and the first segment of `id`
  * describe the same thing and must agree.
  */
-extern dec question(target: Model | Scalar, meta: valueof QuestionMeta);
+extern dec question(target: Model | Scalar | Enum, meta: valueof QuestionMeta);
 
 /**
  * A form an applicant opens: the data it collects and submits. Publishes the model's JSON
@@ -40,13 +40,13 @@ extern dec entities(target: Namespace, entities: Enum);
  * own — a money-shaped string, a bounded count. A member's string value, when it has one, is
  * the tag emitted; otherwise its name is.
  */
-extern dec tag(target: Model | Scalar, ...tags: EnumMember[]);
+extern dec tag(target: Model | Scalar | Enum, ...tags: EnumMember[]);
 
 /**
  * Why a block or field exists in a response. Deliberately separate from semantic
  * question identity, capture mechanism, UI behavior, and delivery targets.
  */
 extern dec role(
-  target: Model | Scalar | ModelProperty,
+  target: Model | Scalar | Enum | ModelProperty,
   role: valueof ResponseRole
 );

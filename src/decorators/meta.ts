@@ -21,7 +21,11 @@ const memberName = (member: EnumMember) =>
  * The entity is recorded as its name now and as the member itself for `$onValidate`, which
  * checks it against the declared sets once every `@Meta.entities` has run.
  */
-export const $question = (ctx: Ctx, target: Model | Scalar, meta: unknown) => {
+export const $question = (
+  ctx: Ctx,
+  target: Model | Scalar | Enum,
+  meta: unknown,
+) => {
   const m = plain(ctx, meta) as {
     id: string;
     entity?: unknown;
@@ -72,7 +76,7 @@ export const $form = (ctx: Ctx, target: Model, meta: unknown) => {
  */
 export const $tag = (
   ctx: Ctx,
-  target: Model | Scalar,
+  target: Model | Scalar | Enum,
   ...tags: EnumMember[]
 ) => {
   set(ctx, stateKeys.tags, target, tags.map(memberName));
@@ -86,6 +90,6 @@ export const $tag = (
  */
 export const $role = (
   ctx: Ctx,
-  target: Model | Scalar | ModelProperty,
+  target: Model | Scalar | Enum | ModelProperty,
   role: unknown,
 ) => set(ctx, stateKeys.responseRole, target, enumName(role));

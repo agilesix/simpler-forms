@@ -85,8 +85,11 @@ export type Condition = AtomicCondition | AnyCondition;
 
 /** Everything the emitters need about one block, read out of decorator state. */
 export interface Block {
-  /** A Model for object-valued blocks, a Scalar for single-value questions. */
-  model: Model | Scalar;
+  /**
+   * A Model for object-valued blocks, a Scalar for single-value questions, and an Enum for a
+   * code list published as a question of its own.
+   */
+  model: Model | Scalar | Enum;
   kind: "question" | "form";
   /** True when the block is a single value rather than an object. */
   scalar: boolean;
@@ -124,7 +127,7 @@ function enumName(value: unknown): string | undefined {
 
 export function readBlock(
   program: Program,
-  model: Model | Scalar,
+  model: Model | Scalar | Enum,
 ): Block | undefined {
   const q = g(program, stateKeys.questionMeta, model) as
     Record<string, unknown> | undefined;
@@ -135,7 +138,7 @@ export function readBlock(
   return {
     model,
     kind: q ? "question" : "form",
-    scalar: model.kind === "Scalar",
+    scalar: model.kind !== "Model",
     id: String(meta.id),
     meta,
     classification: (enumName(meta.classification) ??
@@ -184,9 +187,13 @@ export const propFlatten = (p: Program, prop: ModelProperty) =>
 /** All blocks in the program, in declaration order. */
 export function allBlocks(program: Program): Block[] {
   const out: Block[] = [];
-  const seen = new Set<Model | Scalar>();
+  const seen = new Set<Model | Scalar | Enum>();
   const walk = (ns: any): void => {
-    for (const m of [...ns.models.values(), ...ns.scalars.values()]) {
+    for (const m of [
+      ...ns.models.values(),
+      ...ns.scalars.values(),
+      ...ns.enums.values(),
+    ]) {
       if (seen.has(m)) continue;
       seen.add(m);
       const b = readBlock(program, m);
@@ -231,7 +238,7 @@ export const declaredTagSets = (p: Program) =>
 
 /** Each question or scalar given a `@Meta.tag`, with the enum members it named. */
 export const tagMembers = (p: Program) =>
-  p.stateMap(stateKeys.tagMembers) as Map<Model | Scalar, EnumMember[]>;
+  p.stateMap(stateKeys.tagMembers) as Map<Model | Scalar | Enum, EnumMember[]>;
 
 /** Every enum a namespace declares with `@Meta.entities`: what questions are asked about. */
 export const declaredEntitySets = (p: Program) =>
@@ -239,7 +246,7 @@ export const declaredEntitySets = (p: Program) =>
 
 /** Each question that names an entity, with the enum member it named. */
 export const entityMembers = (p: Program) =>
-  p.stateMap(stateKeys.entityMember) as Map<Model | Scalar, EnumMember>;
+  p.stateMap(stateKeys.entityMember) as Map<Model | Scalar | Enum, EnumMember>;
 
 /** Every enum a namespace declares with `@UI.widgets`: the widgets the program provides. */
 export const declaredWidgetSets = (p: Program) =>
@@ -258,9 +265,9 @@ export const propReadOnly = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.readOnly, prop) === true;
 export const propResponseRole = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.responseRole, prop) as ResponseRole | undefined;
-export const typeResponseRole = (p: Program, type: Model | Scalar) =>
+export const typeResponseRole = (p: Program, type: Model | Scalar | Enum) =>
   g(p, stateKeys.responseRole, type) as ResponseRole | undefined;
-export const typeTags = (p: Program, type: Model | Scalar) =>
+export const typeTags = (p: Program, type: Model | Scalar | Enum) =>
   (g(p, stateKeys.tags, type) as string[]) ?? [];
 export const propReadOnlyWhen = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.readOnlyWhen, prop) as Condition[]) ?? [];
@@ -589,8 +596,13 @@ export function orderedProps(program: Program, block: Block): ModelProperty[] {
  */
 export function blockAncestry(
   program: Program,
-  model: Model | Scalar,
+  model: Model | Scalar | Enum,
 ): string[] {
+  // An enum extends nothing: its ancestry is itself.
+  if (model.kind === "Enum") {
+    const block = readBlock(program, model);
+    return block ? [block.id] : [];
+  }
   const out: string[] = [];
   let current: Model | Scalar | undefined = model;
   while (current) {

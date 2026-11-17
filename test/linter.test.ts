@@ -58,6 +58,40 @@ describe("no-orphan-question", () => {
       .toBeValid();
   });
 
+  it("counts an enum question held by a property", async () => {
+    await lint
+      .expect(
+        form(`
+          /** A US state. */
+          @Meta.question(#{ id: "generics/state-code" })
+          @Meta.tag(TagName.name)
+          enum StateCode { AL, AK }
+
+          /** A form. */
+          ${formMeta("asks")}
+          model Asks {
+            states?: StateCode[];
+          }
+        `),
+      )
+      .toBeValid();
+  });
+
+  it("reports an enum question nothing composes", async () => {
+    await lint
+      .expect(
+        bank(`
+          /** Unasked. */
+          @Meta.question(#{ id: "generics/unasked-code" })
+          @Meta.tag(TagName.name)
+          enum Unasked { a, b }
+        `),
+      )
+      .toEmitDiagnostics({
+        code: "simpler-forms/no-orphan-question",
+      });
+  });
+
   it("counts composition through `extends`", async () => {
     await lint
       .expect(
