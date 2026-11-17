@@ -75,6 +75,19 @@ model ValidationConstraints {
   pattern?: string;
 }
 
+/**
+ * How a condition compares the answer at its source with its value. `exists` takes no value,
+ * and `in` takes a list: the answer is one of its entries. `contains` holds when the answer is
+ * a list with the value among its entries.
+ */
+enum Operator {
+  equals,
+  notEquals,
+  in,
+  contains,
+  exists,
+}
+
 enum Op {
   Sum,
   Subtract,

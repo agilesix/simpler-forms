@@ -6,15 +6,16 @@ import {
   type ModelProperty,
   type Namespace,
 } from "@typespec/compiler";
-import { stateKeys } from "../lib.js";
+import { reportDiagnostic, stateKeys } from "../lib.js";
 import type {
+  MappingCondition,
   MappingFromLink,
   MappingLink,
   MappingMatch,
   MappingPathLink,
   MappingSelection,
 } from "../model.js";
-import { type Ctx, push, set } from "./shared.js";
+import { type Ctx, enumName, push, set } from "./shared.js";
 
 export const $targets = (ctx: Ctx, target: Namespace, targets: Enum) =>
   set(ctx, stateKeys.mappingTargets, target, targets);
@@ -89,6 +90,58 @@ const literal = (value: unknown) =>
 
 export const $required = (ctx: Ctx, target: ModelProperty) =>
   ctx.program.stateSet(stateKeys.mappingRequired).add(target);
+
+export const $when = (
+  ctx: Ctx,
+  target: ModelProperty,
+  source: ModelProperty | Model,
+  operator: unknown,
+  value?: unknown,
+) => {
+  const name = enumName(operator) as MappingCondition["operator"];
+  const picked =
+    source.kind === "ModelProperty" ? { source } : selection(source);
+  if (!picked) {
+    reportDiagnostic(ctx.program, {
+      code: "mapping-when-source",
+      target: ctx.getArgumentTarget(0) ?? target,
+      format: { name: target.name },
+    });
+    return;
+  }
+  const given = value !== undefined;
+  const fail =
+    name === "exists"
+      ? given && "exists"
+      : name === "in"
+        ? !Array.isArray(value) && "in"
+        : !given && "default";
+  if (fail) {
+    reportDiagnostic(ctx.program, {
+      code: "mapping-when-value",
+      messageId: fail,
+      target: ctx.getArgumentTarget(given ? 2 : 1) ?? target,
+      format: { name: target.name, source: picked.source.name, operator: name },
+    });
+    return;
+  }
+  push(ctx, stateKeys.mappingWhen, target, {
+    ...picked,
+    operator: name,
+    ...(given ? { value: plainValue(value) } : {}),
+  } satisfies MappingCondition);
+};
+
+/** A condition's value as plain JSON: lists entry by entry, numbers as JS numbers, enum members as their value. */
+function plainValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(plainValue);
+  if (typeof value === "object" && value !== null) {
+    const v = value as { kind?: string; value?: unknown; name?: string };
+    if (v.kind === "EnumMember") return v.value ?? v.name;
+    if ("asNumber" in value) return literal(value);
+  }
+  return value;
+}
 
 const isField = (value: unknown): value is ModelProperty =>
   typeof value === "object" &&

@@ -394,6 +394,28 @@ export const propMatch = (p: Program, prop: ModelProperty) =>
 export const propMappingRequired = (p: Program, prop: ModelProperty) =>
   p.stateSet(stateKeys.mappingRequired).has(prop);
 
+/**
+ * One of a target property's `@Mapping.when` conditions: the answer at `source` (or the
+ * item `select` picks of it) compared with `value` by `operator`, a member name of
+ * `SimplerForms.Operator`.
+ */
+export interface MappingCondition {
+  source: ModelProperty;
+  select?: MappingSelection;
+  operator: "equals" | "notEquals" | "in" | "contains" | "exists";
+  value?: unknown;
+}
+
+/**
+ * The conditions `@Mapping.when` gives a target property, all of which must hold, in the
+ * order they're written. Decorators run from the bottom up, so they're stored reversed.
+ */
+export const propMappingConditions = (p: Program, prop: ModelProperty) =>
+  [
+    ...((g(p, stateKeys.mappingWhen, prop) as MappingCondition[] | undefined) ??
+      []),
+  ].reverse();
+
 /** Every member of a declared mapping set, in declaration order. */
 export const mappingTargets = (p: Program): EnumMember[] =>
   [...declaredMappingSets(p)].flatMap((e) => [...e.members.values()]);

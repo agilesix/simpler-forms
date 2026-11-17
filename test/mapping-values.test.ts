@@ -1,7 +1,12 @@
 import type { ModelProperty, Program } from "@typespec/compiler";
 import { expectDiagnostics } from "@typespec/compiler/testing";
 import { describe, expect, it } from "vitest";
-import { propMappingRequired, propMatch, propTransform } from "../src/model.js";
+import {
+  propMappingConditions,
+  propMappingRequired,
+  propMatch,
+  propTransform,
+} from "../src/model.js";
 import { Tester, formMeta } from "./tester.js";
 
 /**
@@ -159,5 +164,75 @@ describe("@Mapping.required", () => {
     expect(diagnostics).toEqual([]);
     expect(propMappingRequired(program, prop(program, "title"))).toBe(true);
     expect(propMappingRequired(program, prop(program, "codes"))).toBe(false);
+  });
+});
+
+describe("@Mapping.when", () => {
+  const form = "kind?: string; explanation?: string; codes?: string[];";
+  const conditions = async (decorators: string) => {
+    const [{ program }, diagnostics] = await Tester.compileAndDiagnose(
+      spec(
+        `@Mapping.from(xml, Forms.Example.explanation)
+         ${decorators}
+         explanation?: string;`,
+        form,
+      ),
+    );
+    const found = propMappingConditions(program, prop(program, "explanation"));
+    return {
+      diagnostics,
+      conditions: found.map(({ source, ...rest }) => ({
+        source: source.name,
+        ...rest,
+      })),
+    };
+  };
+
+  it("keeps every condition, each with its operator and value", async () => {
+    const { diagnostics, conditions: found } = await conditions(`
+      @Mapping.when(Forms.Example.kind, Operator.equals, "Revision")
+      @Mapping.when(Forms.Example.kind, Operator.notEquals, "New")
+      @Mapping.when(Forms.Example.kind, Operator.in, #["Revision", "Continuation"])
+      @Mapping.when(Forms.Example.codes, Operator.contains, "E")
+      @Mapping.when(Forms.Example.kind, Operator.exists)
+    `);
+    expect(diagnostics).toEqual([]);
+    expect(found).toEqual([
+      { source: "kind", operator: "equals", value: "Revision" },
+      { source: "kind", operator: "notEquals", value: "New" },
+      { source: "kind", operator: "in", value: ["Revision", "Continuation"] },
+      { source: "codes", operator: "contains", value: "E" },
+      { source: "kind", operator: "exists" },
+    ]);
+  });
+
+  it("takes one item of a list field as its source", async () => {
+    const { diagnostics, conditions: found } = await conditions(
+      `@Mapping.when(Mapping.Item<Forms.Example.codes, 0>, Operator.equals, "E")`,
+    );
+    expect(diagnostics).toEqual([]);
+    expect(found).toEqual([
+      { source: "codes", select: { index: 0 }, operator: "equals", value: "E" },
+    ]);
+  });
+
+  it.each([
+    [
+      "a value for exists",
+      `@Mapping.when(Forms.Example.kind, Operator.exists, "x")`,
+    ],
+    [
+      "no value for equals",
+      `@Mapping.when(Forms.Example.kind, Operator.equals)`,
+    ],
+    [
+      "a single value for in",
+      `@Mapping.when(Forms.Example.kind, Operator.in, "Revision")`,
+    ],
+  ])("reports %s", async (_, decorator) => {
+    const { diagnostics } = await conditions(decorator);
+    expectDiagnostics(diagnostics, {
+      code: "simpler-forms/mapping-when-value",
+    });
   });
 });
