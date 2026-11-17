@@ -63,6 +63,8 @@ export const $decorators = {
   },
   "SimplerForms.Mapping": {
     targets: d.$targets,
+    transforms: d.$transforms,
+    transform: d.$transform,
     to: d.$to,
     path: d.$path,
     from: d.$from,

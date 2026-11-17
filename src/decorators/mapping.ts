@@ -18,6 +18,20 @@ import { type Ctx, push, set } from "./shared.js";
 export const $targets = (ctx: Ctx, target: Namespace, targets: Enum) =>
   set(ctx, stateKeys.mappingTargets, target, targets);
 
+export const $transforms = (ctx: Ctx, target: Namespace, transforms: Enum) =>
+  set(ctx, stateKeys.mappingTransformSets, target, transforms);
+
+export const $transform = (
+  ctx: Ctx,
+  target: ModelProperty,
+  transform: EnumMember,
+  params?: Record<string, unknown>,
+) =>
+  set(ctx, stateKeys.mappingTransform, target, {
+    member: transform,
+    ...(params ? { params } : {}),
+  });
+
 /**
  * Accumulated rather than overwritten: one model or property carries a link per mapping.
  * Two links for the same mapping are reported by `$onValidate`, not here, so the check sees

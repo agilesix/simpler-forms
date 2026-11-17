@@ -160,6 +160,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"name"} is linked in mapping ${"mapping"} from ${"enumName"}, which no namespace declares with @Mapping.targets, so no emitter is known to produce it. Declare the program's mappings once, e.g. @Mapping.targets(${"enumName"}).`,
       },
     },
+    "mapping-transform-undeclared": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} is transformed with ${"transform"} from ${"enumName"}, which no namespace declares with @Mapping.transforms, so no emitter is known to implement it. Declare the program's transformations once, e.g. @Mapping.transforms(${"enumName"}).`,
+      },
+    },
     "mapping-duplicate": {
       severity: "error",
       messages: {
@@ -407,6 +413,8 @@ export const $lib = createTypeSpecLibrary({
     mappedTo: {},
     mappingPaths: {},
     mappedFrom: {},
+    mappingTransformSets: {},
+    mappingTransform: {},
   },
 } as const);
 
