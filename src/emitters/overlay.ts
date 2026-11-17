@@ -19,6 +19,12 @@ import {
 } from "../model.js";
 
 /**
+ * Whether a model's schema has a definition of its own in `$defs`, written with its own
+ * overlay, so what it requires shouldn't be repeated beside each `$ref` to it.
+ */
+export type OwnsDefinition = (model: Model) => boolean;
+
+/**
  * The parts of a block's JSON Schema that `@typespec/json-schema` cannot produce: what the
  * `@Validation.*` decorators require, and the help text, read-only status and choice
  * contracts the `@UI.*` decorators carry into the schema.
@@ -29,6 +35,7 @@ import {
 export function emitSchemaOverlay(
   program: Program,
   block: Block,
+  ownsDefinition: OwnsDefinition = () => false,
 ): Record<string, unknown> | undefined {
   if (block.model.kind !== "Model") return undefined;
   const model = block.model;
@@ -39,9 +46,13 @@ export function emitSchemaOverlay(
   const readOnly = readOnlyAnnotations(program, model);
   const helpText = helpTextAnnotations(program, model);
   const constraints = constraintAnnotations(program, model);
-  const cardinality = cardinalityAnnotations(program, model);
+  const cardinality = cardinalityAnnotations(program, model, ownsDefinition);
   const encodedCheckboxes = encodedCheckboxAnnotations(program, model);
-  const exclusiveValues = exclusiveValueAnnotations(program, model);
+  const exclusiveValues = exclusiveValueAnnotations(
+    program,
+    model,
+    ownsDefinition,
+  );
   const alternatives = atLeastOneAnnotations(program, model);
   const parts = [
     conditionals,
@@ -61,15 +72,16 @@ export function emitSchemaOverlay(
 export function emitModelOverlay(
   program: Program,
   model: Model,
+  ownsDefinition: OwnsDefinition = () => false,
 ): Record<string, unknown> | undefined {
   const parts = [
     conditionalValidation(program, [...model.properties.values()]),
     readOnlyAnnotations(program, model),
     helpTextAnnotations(program, model),
     constraintAnnotations(program, model),
-    cardinalityAnnotations(program, model),
+    cardinalityAnnotations(program, model, ownsDefinition),
     encodedCheckboxAnnotations(program, model),
-    exclusiveValueAnnotations(program, model),
+    exclusiveValueAnnotations(program, model, ownsDefinition),
     atLeastOneAnnotations(program, model),
   ].filter(Boolean) as Record<string, unknown>[];
   return parts.length ? parts.reduce(merge, {}) : undefined;
@@ -83,6 +95,7 @@ export function emitModelOverlay(
 function exclusiveValueAnnotations(
   program: Program,
   model: Model,
+  ownsDefinition: OwnsDefinition,
   seen = new Set<Model>(),
 ): Record<string, unknown> | undefined {
   if (seen.has(model)) return undefined;
@@ -101,13 +114,18 @@ function exclusiveValueAnnotations(
       };
     }
     const child = childModel(property.type);
-    // Published questions own intrinsic exclusivity in their own schema. Do not repeat the
-    // same constraint beside each form occurrence's $ref; only local unpublished capture
-    // models need recursive projection.
-    if (child && !readBlock(program, child.model)) {
+    // Published questions, and local models with a `$defs` definition of their own, carry
+    // their exclusivity in that schema. Don't repeat it beside each `$ref`; only a model
+    // inlined where it's used needs it projected.
+    if (
+      child &&
+      !readBlock(program, child.model) &&
+      !ownsDefinition(child.model)
+    ) {
       const nested = exclusiveValueAnnotations(
         program,
         child.model,
+        ownsDefinition,
         new Set(seen),
       );
       if (nested)
@@ -142,6 +160,7 @@ function atLeastOneAnnotations(
 function cardinalityAnnotations(
   program: Program,
   model: Model,
+  ownsDefinition: OwnsDefinition,
   seen = new Set<Model>(),
 ): Record<string, unknown> | undefined {
   if (seen.has(model)) return undefined;
@@ -192,14 +211,19 @@ function cardinalityAnnotations(
     // The paths of a list's own decorators name fields of its items, so its patch
     // constrains each item, as its nested patch below does.
     if (child?.repeated && Object.keys(patch).length) patch = { items: patch };
-    // A published question owns its intrinsic cardinality in its own schema. Crossing
-    // that reference boundary would copy the same constraints beside every occurrence
-    // `$ref`, causing validators to report each missing path twice. Local unpublished
-    // models still need recursive projection because they have no standalone artifact.
-    if (child && !readBlock(program, child.model)) {
+    // A published question, or a local model with a `$defs` definition of its own, owns its
+    // cardinality in that schema. Crossing that reference boundary would copy the same
+    // constraints beside every `$ref`, causing validators to report each missing path
+    // twice. Only a model inlined where it's used needs them projected.
+    if (
+      child &&
+      !readBlock(program, child.model) &&
+      !ownsDefinition(child.model)
+    ) {
       const nested = cardinalityAnnotations(
         program,
         child.model,
+        ownsDefinition,
         new Set(seen),
       );
       if (nested)
