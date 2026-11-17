@@ -87,6 +87,9 @@ const literal = (value: unknown) =>
     ? ((value as { asNumber(): number | null }).asNumber() ?? Number.NaN)
     : (value as string | number | boolean);
 
+export const $required = (ctx: Ctx, target: ModelProperty) =>
+  ctx.program.stateSet(stateKeys.mappingRequired).add(target);
+
 const isField = (value: unknown): value is ModelProperty =>
   typeof value === "object" &&
   value !== null &&

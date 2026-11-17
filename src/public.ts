@@ -115,6 +115,7 @@ export {
   propMappedFromLinks,
   propTransform,
   propMatch,
+  propMappingRequired,
   declaredTransformSets,
   type MappingLink,
   type MappingPathLink,

@@ -245,6 +245,17 @@ model Root {
 }
 ```
 
+An empty value is left out of the target. `@Mapping.required` writes it anyway, as an empty
+element, for one the target requires but the form may leave unanswered:
+
+```tsp
+model Root {
+  @Mapping.from(Mappings.Target.xml, Forms.Application.dateReceived)
+  @Mapping.required
+  dateReceived: plainDate;
+}
+```
+
 The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
 for nested paths. Every link is checked as it resolves, against the target's type and
 cardinality.
