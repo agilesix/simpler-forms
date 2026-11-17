@@ -1,7 +1,7 @@
 import type { ModelProperty, Program } from "@typespec/compiler";
 import { expectDiagnostics } from "@typespec/compiler/testing";
 import { describe, expect, it } from "vitest";
-import { propTransform } from "../src/model.js";
+import { propMatch, propTransform } from "../src/model.js";
 import { Tester, formMeta } from "./tester.js";
 
 /**
@@ -69,6 +69,81 @@ describe("@Mapping.transform", () => {
     );
     expectDiagnostics(diagnostics, {
       code: "simpler-forms/mapping-transform-undeclared",
+    });
+  });
+});
+
+describe("@Mapping.match", () => {
+  it("spells out each value's entry, and a fixed default", async () => {
+    const [{ program }, diagnostics] = await Tester.compileAndDiagnose(
+      spec(
+        `@Mapping.from(xml, Forms.Example.agrees)
+         @Mapping.match(#{ \`true\`: "Y: Yes", \`false\`: "N: No" }, "N: No")
+         agrees?: string;`,
+        "agrees?: boolean;",
+      ),
+    );
+    expect(diagnostics).toEqual([]);
+    expect(propMatch(program, prop(program, "agrees"))).toEqual({
+      cases: { true: "Y: Yes", false: "N: No" },
+      default: { value: "N: No" },
+    });
+  });
+
+  it("passes unlisted values through when the default names a field", async () => {
+    const [{ program }, diagnostics] = await Tester.compileAndDiagnose(
+      spec(`
+        @Mapping.from(xml, Forms.Example.title)
+        @Mapping.match(#{ \`b. the state\`: "b. the State" }, Forms.Example.title)
+        title?: string;
+      `),
+    );
+    expect(diagnostics).toEqual([]);
+    const match = propMatch(program, prop(program, "title"))!;
+    expect(match.cases).toEqual({ "b. the state": "b. the State" });
+    expect(
+      match.default && "field" in match.default && match.default.field.name,
+    ).toBe("title");
+  });
+
+  it("has no default unless one is given", async () => {
+    const { program } = await Tester.compile(
+      spec(`
+        @Mapping.from(xml, Forms.Example.title)
+        @Mapping.match(#{ a: "A" })
+        title?: string;
+      `),
+    );
+    expect(propMatch(program, prop(program, "title"))).toEqual({
+      cases: { a: "A" },
+    });
+  });
+
+  it("keeps numbers and booleans as values", async () => {
+    const { program } = await Tester.compile(
+      spec(`
+        @Mapping.from(xml, Forms.Example.title)
+        @Mapping.match(#{ one: 1, yes: true }, 0)
+        title?: string;
+      `),
+    );
+    expect(propMatch(program, prop(program, "title"))).toEqual({
+      cases: { one: 1, yes: true },
+      default: { value: 0 },
+    });
+  });
+
+  it("reports a property that has both a match and a transform", async () => {
+    const diagnostics = await Tester.diagnose(
+      spec(`
+        @Mapping.from(xml, Forms.Example.title)
+        @Mapping.match(#{ a: "A" })
+        @Mapping.transform(Transforms.Transformation.truncate)
+        title?: string;
+      `),
+    );
+    expectDiagnostics(diagnostics, {
+      code: "simpler-forms/mapping-match-and-transform",
     });
   });
 });

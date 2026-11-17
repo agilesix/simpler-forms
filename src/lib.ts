@@ -166,6 +166,12 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"name"} is transformed with ${"transform"} from ${"enumName"}, which no namespace declares with @Mapping.transforms, so no emitter is known to implement it. Declare the program's transformations once, e.g. @Mapping.transforms(${"enumName"}).`,
       },
     },
+    "mapping-match-and-transform": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has both @Mapping.match and @Mapping.transform. A property changes its value one way: spell a lookup out with @Mapping.match, or name a transformation.`,
+      },
+    },
     "mapping-duplicate": {
       severity: "error",
       messages: {
@@ -415,6 +421,7 @@ export const $lib = createTypeSpecLibrary({
     mappedFrom: {},
     mappingTransformSets: {},
     mappingTransform: {},
+    mappingMatch: {},
   },
 } as const);
 
