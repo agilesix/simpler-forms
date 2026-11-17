@@ -1,0 +1,6 @@
+# Security fixes for transitive dev dependencies whose parents don't allow the patched
+# versions yet. Remove each once its parent's own range includes the fix.
+overrides:
+  vite@<8.2.4: ^8.2.4
+  source-map-js@<1.2.2: ^1.2.2
+  minimatch@>=10 <11.0.1: ^11.0.1
