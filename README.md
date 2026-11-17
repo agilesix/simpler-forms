@@ -197,6 +197,19 @@ model Root {
 }
 ```
 
+A target can be filled from some of a list field's items. Name the field with `Mapping.Item`
+for one item, counting from 0 (`-1` is the last), or `Mapping.Slice` for a range, its end
+excluded. That fits a target that numbers its elements instead of repeating one:
+
+```tsp
+model Root {
+  @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.Application.types, 0>) typeCode1: string;
+  @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.Application.types, 1>) typeCode2?: string;
+  @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.Application.sites, 0>) primarySite: Site;
+  @Mapping.from(Mappings.Target.xml, Mapping.Slice<Forms.Application.sites, 1>) otherSites?: Site[];
+}
+```
+
 The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
 for nested paths. Every link is checked as it resolves, against the target's type and
 cardinality.

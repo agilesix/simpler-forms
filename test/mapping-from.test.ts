@@ -1,7 +1,14 @@
-import type { EnumMember, Model, Program } from "@typespec/compiler";
+import type {
+  EnumMember,
+  Model,
+  ModelProperty,
+  Program,
+} from "@typespec/compiler";
+import { expectDiagnostics } from "@typespec/compiler/testing";
 import { describe, expect, it } from "vitest";
 import { type MappingNode, resolveMapping } from "../src/mapping.js";
 import { resolveMappingFrom } from "../src/mapping-from.js";
+import { propMappedFromLinks } from "../src/model.js";
 import { Tester, formMeta } from "./tester.js";
 
 /**
@@ -171,5 +178,114 @@ describe("resolveMappingFrom", () => {
     expect(outline(from.resolved.children)).toContain(
       "    contacts.name.firstName -> Name.first (leaf)",
     );
+  });
+});
+
+describe("Item and Slice in @Mapping.from", () => {
+  const LIST_FORM = `
+    @Meta.question(#{ id: "person/name" })
+    model PersonName { firstName: string; lastName: string; }
+    model Site { name: string; }
+    ${formMeta("contacts")}
+    model ContactsForm { applicant: string; types?: string[]; sites?: Site[]; }
+  `;
+  const root = (elements: string) => `
+    model WireSite {
+      @Mapping.from(Mappings.Target.xml, Forms.Site.name) name: string;
+    }
+    @Mapping.from(Mappings.Target.xml, Forms.ContactsForm)
+    model Root { ${elements} }
+  `;
+  const resolve = async (elements: string) => {
+    const [{ program }, diagnostics] = await Tester.compileAndDiagnose(
+      spec(root(elements), LIST_FORM),
+    );
+    const { form, xml } = members(program);
+    return {
+      program,
+      diagnostics,
+      from: resolveMappingFrom(program, form, xml)!,
+    };
+  };
+
+  it("fills targets from one item, or a slice, of a list field", async () => {
+    const { diagnostics, from } = await resolve(`
+      @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, 0>) code1?: string;
+      @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, -1>) last?: string;
+      @Mapping.from(Mappings.Target.xml, Mapping.Slice<Forms.ContactsForm.types, 0, 2>) firstTwo?: string[];
+      @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.sites, 0>) primary?: WireSite;
+      @Mapping.from(Mappings.Target.xml, Mapping.Slice<Forms.ContactsForm.sites, 1>) others?: WireSite[];
+    `);
+    expect(diagnostics).toEqual([]);
+    expect(from.problems).toEqual([]);
+    expect(outline(from.resolved.children)).toEqual([
+      "types -> Root.code1 (leaf)",
+      "types -> Root.last (leaf)",
+      "types -> Root.firstTwo (array)",
+      "sites -> Root.primary (object)",
+      "  sites.name -> WireSite.name (leaf)",
+      "sites -> Root.others (array)",
+      "  sites.name -> WireSite.name (leaf)",
+    ]);
+    expect(from.resolved.children.map((node) => node.select)).toEqual([
+      { index: 0 },
+      { index: -1 },
+      { start: 0, stop: 2 },
+      { index: 0 },
+      { start: 1 },
+    ]);
+  });
+
+  it("lists each link's field and selection", async () => {
+    const { program } = await resolve(`
+      @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, 1>) code2?: string;
+    `);
+    const [code2] = program.resolveTypeReference("Wire.Root.code2");
+    const { xml } = members(program);
+    const links = propMappedFromLinks(program, code2 as ModelProperty, xml);
+    expect(links.map((l) => [l.source.name, l.select])).toEqual([
+      ["types", { index: 1 }],
+    ]);
+  });
+
+  it.each([
+    [
+      "an item of a field that isn't a list",
+      "@Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.applicant, 0>) code?: string;",
+      "simpler-forms/mapping-from-select-not-a-list",
+    ],
+    [
+      "a slice filling a single element",
+      "@Mapping.from(Mappings.Target.xml, Mapping.Slice<Forms.ContactsForm.types, 1>) code?: string;",
+      "simpler-forms/mapping-from-cardinality-mismatch",
+    ],
+    [
+      "an item filling a list",
+      "@Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, 0>) codes?: string[];",
+      "simpler-forms/mapping-from-cardinality-mismatch",
+    ],
+  ])("reports %s", async (_, elements, code) => {
+    const { diagnostics } = await resolve(elements);
+    expectDiagnostics(diagnostics, { code });
+  });
+
+  it("reports an item or slice naming a form for a target model", async () => {
+    const [, diagnostics] = await Tester.compileAndDiagnose(
+      spec(
+        `@Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, 0>)
+         model Root {}`,
+        LIST_FORM,
+      ),
+    );
+    expectDiagnostics(diagnostics, {
+      code: "simpler-forms/mapping-from-select-on-model",
+    });
+  });
+
+  it("rejects an index that isn't a whole number", async () => {
+    const { diagnostics } = await resolve(`
+      @Mapping.from(Mappings.Target.xml, Mapping.Item<Forms.ContactsForm.types, "first">) code?: string;
+    `);
+    expectDiagnostics(diagnostics, { code: "invalid-argument" });
   });
 });

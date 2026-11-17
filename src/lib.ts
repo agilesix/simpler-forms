@@ -208,6 +208,18 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`In mapping ${"mapping"}, ${"target"} is ${"targetShape"} but ${"source"}, which fills it, is ${"sourceShape"}.`,
       },
     },
+    "mapping-from-select-not-a-list": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} reads items of ${"source"} with Item or Slice, but ${"source"} is not a list.`,
+      },
+    },
+    "mapping-from-select-on-model": {
+      severity: "error",
+      messages: {
+        default: paramMessage`In mapping ${"mapping"}, ${"target"} is a target model, filled from a form: Item and Slice name items of a list field, for a target property.`,
+      },
+    },
     "mapping-from-wrapper": {
       severity: "warning",
       messages: {

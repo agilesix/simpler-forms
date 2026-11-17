@@ -63,9 +63,42 @@ extern dec path(
  * to the field its parent is filled from; a property with none is structure, and its own
  * properties are filled relative to its parent's field. Repeatable, so a target shared by
  * several forms names the field each one fills it from.
+ *
+ * To fill it from some of a list field's items, name the field with `Item` or `Slice`:
+ * `@Mapping.from(xml, Form.types, …)` reads the whole list, `Item<Form.types, 0>` its first
+ * item, and `Slice<Form.sites, 1>` the items after the first.
  */
 extern dec from(
   target: Model | ModelProperty,
   mapping: EnumMember,
   source: Model | ModelProperty
 );
+
+/**
+ * One item of the list field `Source`, as the source of a `@Mapping.from`: for a target that
+ * numbers its elements (`ApplicantTypeCode1` to `3`) instead of repeating one. `Index` counts
+ * from 0, and a negative one counts back from the end: `-1` is the last item.
+ *
+ * ```typespec
+ * @Mapping.from(xml, Mapping.Item<Form.applicantTypes, 0>)
+ * applicantTypeCode1: string;
+ * ```
+ */
+model Item<Source extends ModelProperty, Index extends valueof int32> {}
+
+/**
+ * The items of the list field `Source` from `Start`, included, to `Stop`, excluded, or to the
+ * end without one, as the source of a `@Mapping.from`. A negative bound counts back from the
+ * end. The target is a list, filled with those items: e.g. the items after the first, when
+ * `Item<…, 0>` fills an element of its own.
+ *
+ * ```typespec
+ * @Mapping.from(xml, Mapping.Item<Form.sites, 0>) primarySite: Site;
+ * @Mapping.from(xml, Mapping.Slice<Form.sites, 1>) otherSites?: Site[];
+ * ```
+ */
+model Slice<
+  Source extends ModelProperty,
+  Start extends valueof int32,
+  Stop extends valueof int32 | null = null
+> {}
