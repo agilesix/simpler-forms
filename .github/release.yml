@@ -1,0 +1,23 @@
+# Sections of the release notes GitHub generates, which release-please uses
+# ("changelog-type": "github"). Each PR lands in the first category whose label
+# it has; `label-pr.yml` labels PRs from their conventional commit titles.
+changelog:
+  exclude:
+    labels: [chore, ci]
+  categories:
+    - title: ⚠ BREAKING CHANGES
+      labels: [breaking]
+    - title: Features
+      labels: [feat]
+    - title: Bug Fixes
+      labels: [fix]
+    - title: Performance
+      labels: [perf]
+    - title: Refactoring
+      labels: [refactor]
+    - title: Dependencies
+      labels: [deps]
+    - title: Documentation
+      labels: [docs]
+    - title: Other Changes
+      labels: ["*"]

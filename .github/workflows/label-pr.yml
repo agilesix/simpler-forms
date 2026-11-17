@@ -1,0 +1,34 @@
+name: Label PR
+
+# Labels each PR with its conventional commit type, and `breaking` for a `!`,
+# so GitHub's release notes sort it into a section (see `.github/release.yml`).
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  label:
+    name: Label from title
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      # Reads only the PR's title, never its code, so pull_request_target is safe here.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const types = ["feat", "fix", "perf", "refactor", "deps", "docs", "chore", "ci", "test", "build", "style"];
+            const { title, number, labels } = context.payload.pull_request;
+            const match = /^(\w+)(\([^)]*\))?(!)?:/.exec(title);
+            const wanted = new Set();
+            if (match && types.includes(match[1])) wanted.add(match[1]);
+            if (match?.[3]) wanted.add("breaking");
+            const managed = new Set([...types, "breaking"]);
+            const current = labels.map((l) => l.name).filter((n) => managed.has(n));
+            for (const name of current.filter((n) => !wanted.has(n)))
+              await github.rest.issues.removeLabel({ ...context.repo, issue_number: number, name });
+            const add = [...wanted].filter((n) => !current.includes(n));
+            if (add.length)
+              await github.rest.issues.addLabels({ ...context.repo, issue_number: number, labels: add });
