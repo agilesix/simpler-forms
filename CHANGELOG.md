@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0](https://github.com/agilesix/simpler-forms/compare/v0.1.0...v0.2.0) (2026-11-19)
+
+
+### Features
+
+* **mapping:** add @Mapping.match ([#30](https://github.com/agilesix/simpler-forms/issues/30)) ([c85449e](https://github.com/agilesix/simpler-forms/commit/c85449efdda00a5911eae30abb7cb79cd3951755))
+* **mapping:** add @Mapping.required ([#31](https://github.com/agilesix/simpler-forms/issues/31)) ([118c5e5](https://github.com/agilesix/simpler-forms/commit/118c5e5f4dc06c37687059192afa948bcaca9fdf))
+* **mapping:** add @Mapping.transforms and @Mapping.transform ([#29](https://github.com/agilesix/simpler-forms/issues/29)) ([466effb](https://github.com/agilesix/simpler-forms/commit/466effbec0decbf26041f54329a0fa2225cd0230))
+* **mapping:** add @Mapping.when with SimplerForms.Operator ([#32](https://github.com/agilesix/simpler-forms/issues/32)) ([fb72f13](https://github.com/agilesix/simpler-forms/commit/fb72f138228ffbbd6e68fc93e50e030eb2b29fed))
+* **mapping:** select list items with Item and Slice in @Mapping.from ([#28](https://github.com/agilesix/simpler-forms/issues/28)) ([ba4af64](https://github.com/agilesix/simpler-forms/commit/ba4af64b6e33fdaeb377570b34d404fc392cecef))
+* **meta:** allow @Meta.question on enums ([#33](https://github.com/agilesix/simpler-forms/issues/33)) ([33b8652](https://github.com/agilesix/simpler-forms/commit/33b8652338312083d008a01b87a6f989630d8be9))
+
+
+### Bug Fixes
+
+* **validation:** emit @Validation.requiredPaths on a list's items ([#26](https://github.com/agilesix/simpler-forms/issues/26)) ([1a7389b](https://github.com/agilesix/simpler-forms/commit/1a7389b3c5e968d21c0233fdbe486eb3df68d1fc))
+* **validation:** write a local model's @Validation.requiredPaths once ([#27](https://github.com/agilesix/simpler-forms/issues/27)) ([4cbf757](https://github.com/agilesix/simpler-forms/commit/4cbf75725b05cdf6725aed54ac704957f7a5169e))
+
+
+### Dependencies
+
+* update dependencies with security fixes ([#25](https://github.com/agilesix/simpler-forms/issues/25)) ([a0d916a](https://github.com/agilesix/simpler-forms/commit/a0d916a6ef6ee887ccc2d4a342814cc2030c49e9))
+
 ## 0.1.0 (2026-10-13)
 
 
