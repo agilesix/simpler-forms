@@ -294,7 +294,17 @@ export interface MappingPathLink {
 export interface MappingFromLink {
   mapping: EnumMember;
   source: Model | ModelProperty;
+  /** Which items of the list field `source` the link reads, when it names one with `Item` or `Slice`. */
+  select?: MappingSelection;
 }
+
+/**
+ * Which items of a list field a `@Mapping.from` link reads: one by `index` (`Mapping.Item`),
+ * or those from `start` to `stop`, excluded (`Mapping.Slice`). A negative number counts back
+ * from the end.
+ */
+export type MappingSelection =
+  { index: number } | { start: number; stop?: number };
 
 /** Every `@Mapping.from` on each target model and property, in every mapping. */
 export const allMappingFromLinks = (p: Program) =>
@@ -315,6 +325,21 @@ export const propMappedFrom = (
         link.mapping === mapping && link.source.kind === "ModelProperty",
     )
     .map((link) => link.source as ModelProperty);
+
+/**
+ * The links a target property is filled from in `mapping`, one per form that fills it: each
+ * field, and which of its items the link reads, if it names them with `Item` or `Slice`.
+ */
+export const propMappedFromLinks = (
+  p: Program,
+  prop: ModelProperty,
+  mapping: EnumMember,
+) =>
+  (
+    (g(p, stateKeys.mappedFrom, prop) as MappingFromLink[] | undefined) ?? []
+  ).filter(
+    (link) => link.mapping === mapping && link.source.kind === "ModelProperty",
+  ) as (MappingFromLink & { source: ModelProperty })[];
 
 /** Every enum a namespace declares with `@Mapping.targets`: the mappings the program produces. */
 export const declaredMappingSets = (p: Program) =>

@@ -10,7 +10,7 @@ import { type MappingNode, type ResolvedMapping, shapeOf } from "./mapping.js";
 import {
   allMappingFromLinks,
   modelProperties,
-  propMappedFrom,
+  propMappedFromLinks,
 } from "./model.js";
 
 /**
@@ -23,7 +23,8 @@ import {
  * found below a field with no element of its own lands in a group. A target property with
  * no `@Mapping.from` whose own properties are filled is a wrapper element, which a tree keyed
  * by the form's properties cannot hold: it is left out, with a `mapping-from-wrapper` problem
- * for an emitter whose output cannot hold it either to report.
+ * for an emitter whose output cannot hold it either to report. A field named with `Item` or
+ * `Slice` fills its target with some of its items: the node's `select`.
  */
 export function resolveMappingFrom(
   program: Program,
@@ -43,8 +44,8 @@ export function resolveMappingFrom(
     const nodes: MappingNode[] = [];
     for (const element of modelProperties(into)) {
       const to = shapeOf(element.type);
-      const sources = propMappedFrom(program, element, mapping);
-      if (!sources.length) {
+      const links = propMappedFromLinks(program, element, mapping);
+      if (!links.length) {
         if (!to.object || to.array || stack.includes(to.object)) continue;
         // Structure: its own elements are filled from the same field as its parent.
         const inner = walk(to.object, from, prefix, [...stack, to.object]);
@@ -62,10 +63,10 @@ export function resolveMappingFrom(
           );
         continue;
       }
-      const path = sources
-        .map((source) => pathTo(from, source))
-        .find((found) => found !== undefined);
-      if (!path) {
+      const found = links
+        .map((link) => ({ link, path: pathTo(from, link.source) }))
+        .find((candidate) => candidate.path !== undefined);
+      if (!found) {
         problems.push(
           createDiagnostic({
             code: "mapping-from-unresolved",
@@ -73,16 +74,37 @@ export function resolveMappingFrom(
             format: {
               mapping: mapping.name,
               target: describe(element),
-              source: sources.map(describe).join(" or "),
+              source: links.map((link) => describe(link.source)).join(" or "),
               context: from.name || "an anonymous model",
             },
           }),
         );
         continue;
       }
+      const { link } = found;
+      const path = found.path!;
       const source = path.at(-1)!;
       const sourcePath = [...prefix, ...path.map((p) => p.name)];
-      const shape = shapeOf(source.type);
+      const listed = shapeOf(source.type);
+      if (link.select && !listed.array) {
+        problems.push(
+          createDiagnostic({
+            code: "mapping-from-select-not-a-list",
+            target: element,
+            format: {
+              mapping: mapping.name,
+              target: describe(element),
+              source: sourcePath.join("."),
+            },
+          }),
+        );
+        continue;
+      }
+      // One item of a list is a single value, or a single object; a slice is still a list.
+      const shape =
+        link.select && "index" in link.select
+          ? { array: false, object: listed.object }
+          : listed;
       if (shape.array !== to.array) {
         problems.push(
           createDiagnostic({
@@ -109,6 +131,7 @@ export function resolveMappingFrom(
         target: element,
         kind: shape.array ? "array" : shape.object ? "object" : "leaf",
         children,
+        ...(link.select ? { select: link.select } : {}),
       });
     }
     return nodes;

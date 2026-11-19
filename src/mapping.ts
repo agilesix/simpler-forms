@@ -8,6 +8,7 @@ import type {
 import { isArrayModelType } from "@typespec/compiler";
 import {
   type MappingPathLink,
+  type MappingSelection,
   modelMappedTo,
   modelMappingPaths,
   modelProperties,
@@ -35,6 +36,12 @@ export interface MappingNode {
   kind: MappingNodeKind;
   /** The linked properties below an object, a list of objects, or a group, in source order. */
   children: MappingNode[];
+  /**
+   * Which items of the list at `sourcePath` fill the target, when its `@Mapping.from` names
+   * them with `Item` or `Slice`. `kind` describes what's selected: one item of a list of
+   * objects is an `object`.
+   */
+  select?: MappingSelection;
 }
 
 /** A model's mapping in one target, resolved through every model it composes. */

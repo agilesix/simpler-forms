@@ -434,6 +434,13 @@ function checkMappings(program: Program): void {
   for (const [target, links] of allMappingFromLinks(program)) {
     for (const { mapping } of links) undeclared(target, mapping);
     if (target.kind !== "Model") continue;
+    for (const { mapping, select } of links)
+      if (select)
+        reportDiagnostic(program, {
+          code: "mapping-from-select-on-model",
+          target,
+          format: { mapping: mapping.name, target: target.name },
+        });
     for (const { mapping, source } of links) {
       if (source.kind !== "Model") continue;
       for (const problem of resolveMappingFrom(program, source, mapping)
