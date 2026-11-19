@@ -83,4 +83,53 @@ describe("@Validation.requiredPaths", () => {
       ["/roles/1 other"],
     );
   });
+
+  describe("on a property of a local model", () => {
+    const entry = `
+      model Profile { name: string; email?: string; }
+      model Entry {
+        @Validation.requiredPaths("email")
+        profile: Profile;
+      }
+    `;
+    const people = (entryType: string) => `
+      @Meta.form(#{ id: "people", formName: "PEOPLE" })
+      model People { pi: ${entryType}; others?: ${entryType}[]; }
+    `;
+    const missingEmails = {
+      pi: { profile: { name: "Ada" } },
+      others: [{ profile: { name: "Grace" } }],
+    };
+
+    it("writes the requirement once, in the model's definition", async () => {
+      const schema = await formSchema("people", entry + people("Entry"));
+      expect(schema.$defs.Entry.properties.profile.required).toEqual(["email"]);
+      expect(schema.properties.pi.properties).toBeUndefined();
+      expect(schema.properties.others.items.properties).toBeUndefined();
+    });
+
+    it("reports each missing path once", async () => {
+      const schema = await formSchema("people", entry + people("Entry"));
+      expect(errorsFor(schema, missingEmails)).toEqual([
+        "/pi/profile email",
+        "/others/0/profile email",
+      ]);
+    });
+
+    it("keeps the requirement for a model declared outside the schema namespace", async () => {
+      const { outputs } = await EmitTester.emit("simpler-forms").compile(`
+        import "simpler-forms";
+        import "@typespec/json-schema";
+        using SimplerForms;
+        namespace Local { ${entry} }
+        @JsonSchema.jsonSchema
+        namespace Forms { ${people("Local.Entry")} }
+      `);
+      const schema = JSON.parse(outputs["forms/people/schema.json"]);
+      expect(errorsFor(schema, missingEmails)).toEqual([
+        "/pi/profile email",
+        "/others/0/profile email",
+      ]);
+    });
+  });
 });

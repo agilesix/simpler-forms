@@ -14,7 +14,11 @@ import { allBlocks, type Block } from "./model.js";
 import { type PublishedForm, resolveForms } from "./forms.js";
 import { reportDiagnostic } from "./lib.js";
 import { blockSchemaRef } from "./decorators/index.js";
-import { emitModelOverlay, emitSchemaOverlay } from "./emitters/overlay.js";
+import {
+  emitModelOverlay,
+  emitSchemaOverlay,
+  type OwnsDefinition,
+} from "./emitters/overlay.js";
 import { emitBlockUi } from "./emitters/block-ui.js";
 import { emitLayoutUi } from "./emitters/layout-ui.js";
 import { resolveLayout } from "./layout.js";
@@ -90,6 +94,10 @@ export async function $onEmit(
   const blocks = allBlocks(program);
   const { forms } = resolveForms(program);
   const modelsByName = indexModels(program.getGlobalNamespaceType());
+  // A local model with a staged schema of its own is inlined into `$defs` with its overlay
+  // (see `resolveRefs`), so the overlays of models that use it don't repeat it.
+  const ownsDefinition = (model: Model) =>
+    modelsByName.get(model.name) === model && byFile.has(`${model.name}.json`);
   const refToDir = new Map(
     blocks.map((b) => [
       blockSchemaRef(b.id),
@@ -126,11 +134,12 @@ export async function $onEmit(
       from: dir,
       program,
       modelsByName,
+      ownsDefinition,
     });
     if (Object.keys(defs).length) schema = { ...schema, $defs: defs };
 
     // 4. Fold in the conditional requiredness only we can know about.
-    const overlay = emitSchemaOverlay(program, block);
+    const overlay = emitSchemaOverlay(program, block, ownsDefinition);
     if (overlay) schema = mergeSchema(schema, overlay);
 
     const index = emitBlockIndex(program, block);
@@ -202,6 +211,7 @@ interface RefCtx {
   from: string;
   program: EmitContext<FormSpecOptions>["program"];
   modelsByName: Map<string, Model>;
+  ownsDefinition: OwnsDefinition;
 }
 
 /** Rewrite every `$ref`: published blocks keep their identity, others become `$defs`. */
@@ -231,7 +241,11 @@ function resolveRefs(node: any, ctx: RefCtx, seen = new Set<string>()): any {
         seen.add(name);
         const { $schema, $id, ...body } = target;
         const overlay = ctx.modelsByName.has(name)
-          ? emitModelOverlay(ctx.program, ctx.modelsByName.get(name)!)
+          ? emitModelOverlay(
+              ctx.program,
+              ctx.modelsByName.get(name)!,
+              ctx.ownsDefinition,
+            )
           : undefined;
         ctx.defs[name] = resolveRefs(
           overlay ? mergeSchema(body, overlay) : body,
