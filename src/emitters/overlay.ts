@@ -189,6 +189,9 @@ function cardinalityAnnotations(
       ),
     );
     const child = childModel(property.type);
+    // The paths of a list's own decorators name fields of its items, so its patch
+    // constrains each item, as its nested patch below does.
+    if (child?.repeated && Object.keys(patch).length) patch = { items: patch };
     // A published question owns its intrinsic cardinality in its own schema. Crossing
     // that reference boundary would copy the same constraints beside every occurrence
     // `$ref`, causing validators to report each missing path twice. Local unpublished
