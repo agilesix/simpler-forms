@@ -422,6 +422,7 @@ export const $lib = createTypeSpecLibrary({
     mappingTransformSets: {},
     mappingTransform: {},
     mappingMatch: {},
+    mappingRequired: {},
   },
 } as const);
 

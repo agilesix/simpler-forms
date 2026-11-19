@@ -1,7 +1,7 @@
 import type { ModelProperty, Program } from "@typespec/compiler";
 import { expectDiagnostics } from "@typespec/compiler/testing";
 import { describe, expect, it } from "vitest";
-import { propMatch, propTransform } from "../src/model.js";
+import { propMappingRequired, propMatch, propTransform } from "../src/model.js";
 import { Tester, formMeta } from "./tester.js";
 
 /**
@@ -145,5 +145,19 @@ describe("@Mapping.match", () => {
     expectDiagnostics(diagnostics, {
       code: "simpler-forms/mapping-match-and-transform",
     });
+  });
+});
+
+describe("@Mapping.required", () => {
+  it("marks only the properties written even when empty", async () => {
+    const [{ program }, diagnostics] = await Tester.compileAndDiagnose(
+      spec(`
+        @Mapping.from(xml, Forms.Example.title) @Mapping.required title?: string;
+        @Mapping.from(xml, Forms.Example.codes) codes?: string[];
+      `),
+    );
+    expect(diagnostics).toEqual([]);
+    expect(propMappingRequired(program, prop(program, "title"))).toBe(true);
+    expect(propMappingRequired(program, prop(program, "codes"))).toBe(false);
   });
 });

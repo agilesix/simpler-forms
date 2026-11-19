@@ -65,6 +65,13 @@ extern dec match(
 );
 
 /**
+ * Write this target property even when its value is empty, as an empty element: for one the
+ * target requires but the form may leave unanswered, such as a date filled in on submission.
+ * By default, an empty value is left out.
+ */
+extern dec required(target: ModelProperty);
+
+/**
  * In mapping `mapping`, this model or property corresponds to `mappedTo`.
  *
  * Link a model to a model, and its properties to properties of that model. A property whose

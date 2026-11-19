@@ -390,6 +390,10 @@ export interface MappingMatch {
 export const propMatch = (p: Program, prop: ModelProperty) =>
   g(p, stateKeys.mappingMatch, prop) as MappingMatch | undefined;
 
+/** Whether `@Mapping.required` writes a target property even when its value is empty. */
+export const propMappingRequired = (p: Program, prop: ModelProperty) =>
+  p.stateSet(stateKeys.mappingRequired).has(prop);
+
 /** Every member of a declared mapping set, in declaration order. */
 export const mappingTargets = (p: Program): EnumMember[] =>
   [...declaredMappingSets(p)].flatMap((e) => [...e.members.values()]);
