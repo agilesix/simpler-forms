@@ -41,6 +41,9 @@ import {
   entityMembers,
   allMappingLinks,
   allMappingPathLinks,
+  allTransformedProps,
+  declaredTransformSets,
+  propTransform,
   declaredMappingSets,
   allLayouts,
   allMappingFromLinks,
@@ -382,6 +385,21 @@ function checkMappings(program: Program): void {
   };
   for (const [model, paths] of allMappingPathLinks(program))
     for (const { mapping } of paths) undeclared(model, mapping);
+
+  const transforms = declaredTransformSets(program);
+  for (const prop of allTransformedProps(program)) {
+    const { member } = propTransform(program, prop)!;
+    if (transforms.has(member.enum)) continue;
+    reportDiagnostic(program, {
+      code: "mapping-transform-undeclared",
+      target: prop,
+      format: {
+        name: prop.name,
+        transform: member.name,
+        enumName: member.enum.name,
+      },
+    });
+  }
 
   const roots: [Model, EnumMember][] = [];
   for (const [target, list] of links) {

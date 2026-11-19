@@ -113,10 +113,13 @@ export {
   modelMappingPaths,
   propMappedFrom,
   propMappedFromLinks,
+  propTransform,
+  declaredTransformSets,
   type MappingLink,
   type MappingPathLink,
   type MappingFromLink,
   type MappingSelection,
+  type MappingTransform,
 } from "./model.js";
 export {
   /** A model's mapping in one target, resolved through every model it composes. */

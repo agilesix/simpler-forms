@@ -210,6 +210,25 @@ model Root {
 }
 ```
 
+### Changing a value on its way through
+
+A target property can change the value it reads. `@Mapping.transform` names a transformation
+the target emitter's runtime implements. The program declares the ones it uses in an enum, as
+it does its mappings, with the name the runtime implements each under as its value:
+
+```tsp
+@Mapping.transforms(Transformation)
+namespace Transforms {
+  enum Transformation { yesNo: "boolean_to_yes_no", truncate: "truncate_string" }
+}
+
+model Root {
+  @Mapping.from(Mappings.Target.xml, Forms.Application.title)
+  @Mapping.transform(Transforms.Transformation.truncate, #{ max_length: 60 })
+  title: string;
+}
+```
+
 The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
 for nested paths. Every link is checked as it resolves, against the target's type and
 cardinality.

@@ -345,6 +345,38 @@ export const propMappedFromLinks = (
 export const declaredMappingSets = (p: Program) =>
   new Set(p.stateMap(stateKeys.mappingTargets).values() as Iterable<Enum>);
 
+/** Every enum a namespace declares with `@Mapping.transforms`: the transformations emitters implement. */
+export const declaredTransformSets = (p: Program) =>
+  new Set(
+    p.stateMap(stateKeys.mappingTransformSets).values() as Iterable<Enum>,
+  );
+
+/** A target property's `@Mapping.transform`: the transformation, by the name an emitter implements it under. */
+export interface MappingTransform {
+  /** The member's value, or its name when it has none. */
+  name: string;
+  member: EnumMember;
+  params?: Record<string, unknown>;
+}
+
+/** Every target property with a `@Mapping.transform`. */
+export const allTransformedProps = (p: Program) => [
+  ...(p.stateMap(stateKeys.mappingTransform).keys() as Iterable<ModelProperty>),
+];
+
+/** The transformation `@Mapping.transform` gives a target property, if any. */
+export function propTransform(
+  p: Program,
+  prop: ModelProperty,
+): MappingTransform | undefined {
+  const stored = g(p, stateKeys.mappingTransform, prop) as
+    { member: EnumMember; params?: Record<string, unknown> } | undefined;
+  if (!stored) return undefined;
+  const { member, params } = stored;
+  const name = typeof member.value === "string" ? member.value : member.name;
+  return { name, member, ...(params ? { params } : {}) };
+}
+
 /** Every member of a declared mapping set, in declaration order. */
 export const mappingTargets = (p: Program): EnumMember[] =>
   [...declaredMappingSets(p)].flatMap((e) => [...e.members.values()]);
