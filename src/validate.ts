@@ -44,6 +44,7 @@ import {
   allTransformedProps,
   declaredTransformSets,
   propTransform,
+  propMatch,
   declaredMappingSets,
   allLayouts,
   allMappingFromLinks,
@@ -389,6 +390,12 @@ function checkMappings(program: Program): void {
   const transforms = declaredTransformSets(program);
   for (const prop of allTransformedProps(program)) {
     const { member } = propTransform(program, prop)!;
+    if (propMatch(program, prop))
+      reportDiagnostic(program, {
+        code: "mapping-match-and-transform",
+        target: prop,
+        format: { name: prop.name },
+      });
     if (transforms.has(member.enum)) continue;
     reportDiagnostic(program, {
       code: "mapping-transform-undeclared",

@@ -42,6 +42,29 @@ extern dec transform(
 );
 
 /**
+ * Write this target property's value as the entry `cases` gives it: a lookup spelled out in
+ * the spec, so every emitter applies it the same way. A value is looked up as JSON writes it,
+ * so a boolean matches `true` or `false` and a number its digits. A key that isn't an
+ * identifier is written in backticks.
+ *
+ * A value `cases` doesn't list is written as `default`: a fixed value, or a field. Naming the
+ * field this property is filled from passes the value through unchanged, to change only some
+ * values. Without a default, an unlisted value is an error. A property takes
+ * `@Mapping.match` or `@Mapping.transform`, not both.
+ *
+ * ```typespec
+ * @Mapping.from(xml, Form.reviewStatus)
+ * @Mapping.match(#{ `b. … the state …`: "b. … the State …" }, Form.reviewStatus)
+ * stateReview: string;
+ * ```
+ */
+extern dec match(
+  target: ModelProperty,
+  cases: valueof Record<string | numeric | boolean>,
+  default?: ModelProperty | (valueof string | numeric | boolean)
+);
+
+/**
  * In mapping `mapping`, this model or property corresponds to `mappedTo`.
  *
  * Link a model to a model, and its properties to properties of that model. A property whose

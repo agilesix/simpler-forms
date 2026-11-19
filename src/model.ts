@@ -377,6 +377,19 @@ export function propTransform(
   return { name, member, ...(params ? { params } : {}) };
 }
 
+/**
+ * A target property's `@Mapping.match`: the value each listed value is written as, and what
+ * an unlisted one is written as, a fixed `value` or a `field`'s, if anything.
+ */
+export interface MappingMatch {
+  cases: Record<string, string | number | boolean>;
+  default?: { value: string | number | boolean } | { field: ModelProperty };
+}
+
+/** The lookup `@Mapping.match` gives a target property, if any. */
+export const propMatch = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.mappingMatch, prop) as MappingMatch | undefined;
+
 /** Every member of a declared mapping set, in declaration order. */
 export const mappingTargets = (p: Program): EnumMember[] =>
   [...declaredMappingSets(p)].flatMap((e) => [...e.members.values()]);

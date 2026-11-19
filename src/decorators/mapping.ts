@@ -10,6 +10,7 @@ import { stateKeys } from "../lib.js";
 import type {
   MappingFromLink,
   MappingLink,
+  MappingMatch,
   MappingPathLink,
   MappingSelection,
 } from "../model.js";
@@ -60,6 +61,36 @@ export const $path = (
     sourcePath,
     mappedTo,
   } satisfies MappingPathLink);
+
+export const $match = (
+  ctx: Ctx,
+  target: ModelProperty,
+  cases: Record<string, string | number | boolean>,
+  fallback?: ModelProperty | string | number | boolean,
+) =>
+  set(ctx, stateKeys.mappingMatch, target, {
+    cases: Object.fromEntries(
+      Object.entries(cases).map(([key, value]) => [key, literal(value)]),
+    ),
+    ...(fallback === undefined
+      ? {}
+      : {
+          default: isField(fallback)
+            ? { field: fallback }
+            : { value: literal(fallback) },
+        }),
+  } satisfies MappingMatch);
+
+/** A `valueof numeric` arrives as TypeSpec's arbitrary-precision `Numeric`: as a JS number. */
+const literal = (value: unknown) =>
+  typeof value === "object" && value !== null && "asNumber" in value
+    ? ((value as { asNumber(): number | null }).asNumber() ?? Number.NaN)
+    : (value as string | number | boolean);
+
+const isField = (value: unknown): value is ModelProperty =>
+  typeof value === "object" &&
+  value !== null &&
+  (value as ModelProperty).kind === "ModelProperty";
 
 /** A source named with `Mapping.Item` or `Mapping.Slice` is stored as its field and selection. */
 export const $from = (

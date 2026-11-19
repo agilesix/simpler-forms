@@ -229,6 +229,22 @@ model Root {
 }
 ```
 
+A lookup can be spelled out instead, with `@Mapping.match`, so every emitter applies it the
+same way. A value it doesn't list is written as the default: a fixed value, or a field.
+Naming the field the property is filled from passes other values through unchanged:
+
+```tsp
+model Root {
+  @Mapping.from(Mappings.Target.xml, Forms.Application.agrees)
+  @Mapping.match(#{ `true`: "Y: Yes", `false`: "N: No" })
+  agrees: string;
+
+  @Mapping.from(Mappings.Target.xml, Forms.Application.review)
+  @Mapping.match(#{ `b. … by the state`: "b. … by the State" }, Forms.Application.review)
+  stateReview: string;
+}
+```
+
 The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
 for nested paths. Every link is checked as it resolves, against the target's type and
 cardinality.
