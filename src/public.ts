@@ -116,6 +116,7 @@ export {
   propTransform,
   propMatch,
   propMappingRequired,
+  propMappingConditions,
   declaredTransformSets,
   type MappingLink,
   type MappingPathLink,
@@ -123,6 +124,7 @@ export {
   type MappingSelection,
   type MappingTransform,
   type MappingMatch,
+  type MappingCondition,
 } from "./model.js";
 export {
   /** A model's mapping in one target, resolved through every model it composes. */

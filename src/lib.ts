@@ -172,6 +172,20 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`${"name"} has both @Mapping.match and @Mapping.transform. A property changes its value one way: spell a lookup out with @Mapping.match, or name a transformation.`,
       },
     },
+    "mapping-when-value": {
+      severity: "error",
+      messages: {
+        exists: paramMessage`@Mapping.when on ${"name"} tests whether ${"source"} is answered, so it takes no value.`,
+        in: paramMessage`@Mapping.when on ${"name"} tests whether ${"source"} is one of a list's entries, so its value is a list.`,
+        default: paramMessage`@Mapping.when on ${"name"} compares ${"source"} with ${"operator"}, so it needs a value.`,
+      },
+    },
+    "mapping-when-source": {
+      severity: "error",
+      messages: {
+        default: paramMessage`@Mapping.when on ${"name"} names a model as its source: name a field of the form, or one item of a list field with Item.`,
+      },
+    },
     "mapping-duplicate": {
       severity: "error",
       messages: {
@@ -423,6 +437,7 @@ export const $lib = createTypeSpecLibrary({
     mappingTransform: {},
     mappingMatch: {},
     mappingRequired: {},
+    mappingWhen: {},
   },
 } as const);
 

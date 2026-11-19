@@ -256,6 +256,21 @@ model Root {
 }
 ```
 
+`@Mapping.when` writes a target property only while a condition holds, so an answer the
+form keeps after it stops applying, such as an explanation for an option the applicant has
+since changed, isn't written. It compares the answer at a field with a value, using an
+`Operator`: `equals`, `notEquals`, `in` (a list of values), `contains` (for a list answer) or
+`exists` (no value). Every condition on a property must hold:
+
+```tsp
+model Root {
+  @Mapping.from(Mappings.Target.xml, Forms.Application.revisionExplanation)
+  @Mapping.when(Forms.Application.applicationType, Operator.equals, "Revision")
+  @Mapping.when(Forms.Application.revisionCodes, Operator.contains, "E")
+  revisionOtherExplanation?: string;
+}
+```
+
 The same links can be declared from the form's side with `@Mapping.to`, plus `@Mapping.path`
 for nested paths. Every link is checked as it resolves, against the target's type and
 cardinality.

@@ -72,6 +72,27 @@ extern dec match(
 extern dec required(target: ModelProperty);
 
 /**
+ * Write this target property only while the condition holds: the answer at `source`
+ * compared with `value` by `operator`. For an answer the form keeps while it no longer
+ * applies, such as an explanation for an option the applicant has since changed.
+ * Repeatable: every condition must hold. `source` is a field of the form, or one item of a
+ * list field with `Item`.
+ *
+ * ```typespec
+ * @Mapping.from(xml, Form.revisionExplanation)
+ * @Mapping.when(Form.applicationType, Operator.equals, "Revision")
+ * @Mapping.when(Form.revisionCodes, Operator.contains, "E")
+ * revisionOtherExplanation?: string;
+ * ```
+ */
+extern dec when(
+  target: ModelProperty,
+  source: ModelProperty | Model,
+  operator: valueof Operator,
+  value?: valueof unknown
+);
+
+/**
  * In mapping `mapping`, this model or property corresponds to `mappedTo`.
  *
  * Link a model to a model, and its properties to properties of that model. A property whose
