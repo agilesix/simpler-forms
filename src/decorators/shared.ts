@@ -1,5 +1,6 @@
 import type {
   DecoratorContext,
+  Enum,
   Model,
   ModelProperty,
   Scalar,
@@ -74,7 +75,11 @@ export const blockSchemaRef = (id: string) => `${id}/schema.json`;
  * Delegate to the stock JSON Schema library, which resolves this relative id
  * against the namespace base and uses it for both `$id` and every `$ref` target.
  */
-export function publishAs(ctx: Ctx, target: Model | Scalar, id: string): void {
+export function publishAs(
+  ctx: Ctx,
+  target: Model | Scalar | Enum,
+  id: string,
+): void {
   $jsonSchemaId(ctx as any, target as any, blockSchemaRef(id));
 }
 

@@ -786,7 +786,7 @@ function checkDuplicateIds(program: Program, blocks: Block[]): void {
   }
 }
 
-const name = (type: Model | Scalar) => type.name || "an anonymous model";
+const name = (type: Model | Scalar | Enum) => type.name || "an anonymous model";
 
 // ---------------------------------------------------------------------------
 // conditions

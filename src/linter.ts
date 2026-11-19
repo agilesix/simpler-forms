@@ -1,4 +1,4 @@
-import type { Model, ModelProperty, Scalar } from "@typespec/compiler";
+import type { Enum, Model, ModelProperty, Scalar } from "@typespec/compiler";
 import {
   createRule,
   defineCodeFix,
@@ -47,12 +47,14 @@ const orphanQuestion = createRule({
         // property, by extending it, or by being reached through a model that is not itself
         // a question -- and all three have to count, or the rule reports a question that a
         // form does ask.
-        const seen = new Set<Model | Scalar>();
-        const reach = (type: Model | Scalar, viaComposition: boolean): void => {
+        const seen = new Set<Held>();
+        const reach = (type: Held, viaComposition: boolean): void => {
           const block = byType.get(type);
           if (block && viaComposition) referenced.add(block.id);
           if (seen.has(type)) return;
           seen.add(type);
+          // A code list holds nothing further.
+          if (type.kind === "Enum") return;
           // Extending a question composes it, for a scalar as much as for a model: naming a
           // shape does not make the shape unasked.
           const base = type.kind === "Model" ? type.baseModel : type.baseScalar;
@@ -91,15 +93,22 @@ const orphanQuestion = createRule({
  * three codes, so the *list* is what the form asks -- and the entries can be a question too.
  * Returning only the entries reports the list as composed by nothing.
  */
-function held(prop: ModelProperty): (Model | Scalar)[] {
+function held(prop: ModelProperty): Held[] {
   const type = prop.type;
-  if (type.kind === "Scalar") return [type];
+  if (type.kind === "Scalar" || type.kind === "Enum") return [type];
   if (type.kind !== "Model") return [];
-  const out: (Model | Scalar)[] = [type];
+  const out: Held[] = [type];
   const item = type.indexer?.value;
-  if (item && (item.kind === "Model" || item.kind === "Scalar")) out.push(item);
+  if (
+    item &&
+    (item.kind === "Model" || item.kind === "Scalar" || item.kind === "Enum")
+  )
+    out.push(item);
   return out;
 }
+
+/** What a question can be: an object, a single value, or a code list. */
+type Held = Model | Scalar | Enum;
 
 const questionDocs = createRule({
   name: "require-question-docs",
