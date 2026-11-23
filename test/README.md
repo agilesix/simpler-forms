@@ -6,7 +6,8 @@ reads a file from disk or depends on any particular corpus of forms.
 
 | File                      | Lines | What it covers                                               |
 | ------------------------- | ----: | ------------------------------------------------------------ |
-| `validate.test.ts`        |   745 | Every `$onValidate` diagnostic                               |
+| `validate.test.ts`        |   576 | Every `$onValidate` diagnostic except formulas'              |
+| `formula.test.ts`         |   237 | `@Formula.*`: `propFormula`, block fields, and diagnostics   |
 | `linter.test.ts`          |   338 | Every lint rule, via `createLinterRuleTester`                |
 | `mapping.test.ts`         |   380 | `resolveMapping`, and every `@Mapping.*` diagnostic          |
 | `mapping-from.test.ts`    |   175 | `resolveMappingFrom`: `@Mapping.from` on the target          |

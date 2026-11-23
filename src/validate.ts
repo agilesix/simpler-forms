@@ -20,10 +20,7 @@ import {
   cardinalityRequiredWhen,
   childBlock,
   conditionSourceModel,
-  propCalculationMaterialization,
-  propComputed,
   readBlock,
-  propComputedFrom,
   propEncodedCheckboxGroup,
   modelProperties,
   propEnabledWhen,
@@ -54,6 +51,7 @@ import { resolveMappingFrom } from "./mapping-from.js";
 import { resolveForms } from "./forms.js";
 import { resolveLayout } from "./layout.js";
 import { emitLayoutUi } from "./emitters/layout-ui.js";
+import { checkFormulas } from "./formula.js";
 
 /**
  * Whole-program checks whose failure means the emitted artifacts would be wrong.
@@ -61,7 +59,7 @@ import { emitLayoutUi } from "./emitters/layout-ui.js";
  * These are errors, so they run here rather than in the linter, which may only warn. Each
  * one exists because the defect it catches is currently invisible: a question named after a
  * form, two blocks colliding on one output path, a condition comparing against a value the
- * source enum does not have, a calculation that depends on itself, a field that is required
+ * source enum does not have, a formula that reads itself, a field that is required
  * but can be hidden, a widget no renderer was declared to provide, a form that cannot be
  * published, and a layout that misplaces a field.
  */
@@ -87,9 +85,7 @@ export function $onValidate(program: Program): void {
   checkMappings(program);
   checkDateOrders(program);
   checkCardinalityPaths(program);
-  checkCalculationCycles(program, blocks);
-  checkCalculationMaterialization(program, blocks);
-  checkComputedPaths(program, blocks);
+  checkFormulas(program);
 }
 
 function checkCardinalityPaths(program: Program): void {
@@ -577,133 +573,6 @@ function checkEncodedCheckboxGroup(
 }
 
 // ---------------------------------------------------------------------------
-// cross-boundary calculation paths
-
-function arrayItem(type: Type): Type | undefined {
-  return type.kind === "Model" && type.indexer ? type.indexer.value : undefined;
-}
-
-function resolves(model: Model, path: string): boolean {
-  let current: Type = model;
-  for (const raw of path.split(".")) {
-    const repeated = raw.endsWith("[*]");
-    const name = repeated ? raw.slice(0, -3) : raw;
-    if (current.kind !== "Model") return false;
-    const property = current.properties.get(name);
-    if (!property) return false;
-    current = property.type;
-    if (repeated) {
-      const item = arrayItem(current);
-      if (!item) return false;
-      current = item;
-    }
-  }
-  return true;
-}
-
-function contains(
-  model: Model,
-  target: Model,
-  seen = new Set<Model>(),
-): boolean {
-  if (model === target) return true;
-  if (seen.has(model)) return false;
-  seen.add(model);
-  for (const property of model.properties.values()) {
-    let type: Type = property.type;
-    const item = arrayItem(type);
-    if (item) type = item;
-    if (type.kind === "Model" && contains(type, target, seen)) return true;
-  }
-  return false;
-}
-
-/** Immediate composition parents of a model within one form's reachable type graph. */
-function compositionParents(
-  model: Model,
-  target: Model,
-  found = new Set<Model>(),
-  visiting = new Set<Model>(),
-): Set<Model> {
-  if (visiting.has(model)) return found;
-  const next = new Set(visiting).add(model);
-  for (const property of model.properties.values()) {
-    let type: Type = property.type;
-    const item = arrayItem(type);
-    if (item) type = item;
-    if (type.kind !== "Model") continue;
-    if (type === target) found.add(model);
-    compositionParents(type, target, found, next);
-  }
-  return found;
-}
-
-function checkComputedPaths(program: Program, blocks: Block[]): void {
-  const forms = blocks.filter(
-    (block): block is Block & { model: Model } =>
-      block.kind === "form" && block.model.kind === "Model",
-  );
-  const models: Model[] = [];
-  const visit = (namespace: Namespace): void => {
-    models.push(...namespace.models.values());
-    for (const child of namespace.namespaces.values()) visit(child);
-  };
-  visit(program.getGlobalNamespaceType());
-
-  for (const model of models) {
-    for (const property of model.properties.values()) {
-      const computed = propComputedFrom(program, property);
-      if (!computed) continue;
-      const owner = property.model;
-      if (!owner) continue;
-      for (const path of computed.paths) {
-        const absolute = path.startsWith("/");
-        const parentRelative = path.startsWith("../");
-        const candidate = absolute
-          ? path.slice(1)
-          : parentRelative
-            ? path.slice(3)
-            : path;
-        const containingForms = absolute
-          ? forms.filter((form) => contains(form.model, owner))
-          : [];
-        const parents = parentRelative
-          ? new Set(
-              forms.flatMap((form) => [
-                ...compositionParents(form.model, owner),
-              ]),
-            )
-          : new Set<Model>();
-        const valid = absolute
-          ? // A question-bank file can compile without any form in scope. Defer its absolute
-            // composition paths until a form actually composes the block; every containing
-            // form must then satisfy the declared relationship.
-            containingForms.length === 0 ||
-            containingForms.every((form) => resolves(form.model, candidate))
-          : parentRelative
-            ? parents.size === 0 ||
-              [...parents].every((parent) => resolves(parent, candidate))
-            : resolves(owner, candidate);
-        if (!valid) {
-          reportDiagnostic(program, {
-            code: "calculation-path-unresolved",
-            target: property,
-            format: {
-              path,
-              scope: absolute
-                ? "its containing form"
-                : parentRelative
-                  ? "its containing block"
-                  : owner.name,
-            },
-          });
-        }
-      }
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
 // layouts
 
 /**
@@ -950,98 +819,6 @@ function objectBehind(
   const block = childBlock(program, prop);
   if (block && block.scalar) return undefined;
   return type;
-}
-
-// ---------------------------------------------------------------------------
-// calculations
-
-/** A materialization policy is meaningful only on a declared calculation. */
-function checkCalculationMaterialization(
-  program: Program,
-  blocks: Block[],
-): void {
-  const seen = new Set<Model>();
-  for (const block of blocks) {
-    if (block.model.kind !== "Model") continue;
-    walkModels(program, block.model, seen, (model) => {
-      for (const prop of model.properties.values()) {
-        if (!propCalculationMaterialization(program, prop)) continue;
-        if (propComputed(program, prop) || propComputedFrom(program, prop))
-          continue;
-        reportDiagnostic(program, {
-          code: "calculation-materialization-without-calculation",
-          target: prop,
-          format: { name: prop.name },
-        });
-      }
-    });
-  }
-}
-
-/**
- * A calculated value that depends on itself has no evaluation order, so a consumer would
- * emit a rule the runtime cannot satisfy. The cycle is reported once, naming the loop.
- */
-function checkCalculationCycles(program: Program, blocks: Block[]): void {
-  const seen = new Set<Model>();
-  for (const block of blocks) {
-    if (block.model.kind !== "Model") continue;
-    walkModels(program, block.model, seen, (model) => {
-      const edges = new Map<string, string[]>();
-      for (const prop of model.properties.values()) {
-        const computed = propComputed(program, prop);
-        if (computed) edges.set(prop.name, computed.refs);
-      }
-      for (const start of edges.keys()) {
-        const cycle = findCycle(start, edges);
-        if (!cycle) continue;
-        reportDiagnostic(program, {
-          code: "calculation-cycle",
-          target: model.properties.get(start)!,
-          format: { cycle: cycle.join(" -> ") },
-        });
-        return;
-      }
-    });
-  }
-}
-
-function findCycle(
-  start: string,
-  edges: Map<string, string[]>,
-): string[] | undefined {
-  const path: string[] = [];
-  const onPath = new Set<string>();
-  const visit = (node: string): string[] | undefined => {
-    if (onPath.has(node)) return [...path.slice(path.indexOf(node)), node];
-    if (!edges.has(node)) return undefined;
-    path.push(node);
-    onPath.add(node);
-    for (const next of edges.get(node)!) {
-      const found = visit(next);
-      if (found) return found;
-    }
-    path.pop();
-    onPath.delete(node);
-    return undefined;
-  };
-  return visit(start);
-}
-
-/** Every model reachable from a block, each visited once. */
-function walkModels(
-  program: Program,
-  model: Model,
-  seen: Set<Model>,
-  visit: (model: Model) => void,
-): void {
-  if (seen.has(model)) return;
-  seen.add(model);
-  visit(model);
-  for (const prop of model.properties.values()) {
-    const next = objectBehind(program, prop);
-    if (next) walkModels(program, next, seen, visit);
-  }
 }
 
 /** The emitter needs the same notion of "all properties", derived declaration winning. */

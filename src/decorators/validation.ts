@@ -1,14 +1,6 @@
 import type { Model, ModelProperty } from "@typespec/compiler";
 import { reportDiagnostic, stateKeys } from "../lib.js";
-import {
-  type Ctx,
-  condition,
-  enumName,
-  literal,
-  plain,
-  push,
-  set,
-} from "./shared.js";
+import { type Ctx, condition, literal, plain, push, set } from "./shared.js";
 
 // --- constraints ----------------------------------------------------------
 
@@ -167,54 +159,3 @@ export const $positiveDecimalStringWhenPathPresent = (
     targetPath: String(literal(targetPath)),
     sourcePath: String(literal(sourcePath)),
   });
-
-// --- calculation ----------------------------------------------------------
-
-export const $computed = (
-  ctx: Ctx,
-  target: ModelProperty,
-  operator: unknown,
-  ...refs: ModelProperty[]
-) =>
-  set(ctx, stateKeys.computed, target, {
-    operator: enumName(operator),
-    refs: refs.map((r) => r.name),
-  });
-
-export const $computedFrom = (
-  ctx: Ctx,
-  target: ModelProperty,
-  operator: unknown,
-  ...paths: unknown[]
-) =>
-  set(ctx, stateKeys.computedFrom, target, {
-    operator: enumName(operator),
-    paths: paths.map((path) => String(literal(path))),
-  });
-
-export const $materializeWhenAnySourcePresent = (
-  ctx: Ctx,
-  target: ModelProperty,
-) =>
-  set(
-    ctx,
-    stateKeys.calculationMaterialization,
-    target,
-    "when_any_source_present",
-  );
-
-export const $evaluationOrder = (
-  ctx: Ctx,
-  target: ModelProperty,
-  order: number,
-) => set(ctx, stateKeys.evaluationOrder, target, order);
-
-/**
- * Field-by-field totalling. Only the source properties are recorded; which field of the
- * block pairs with which is worked out at emission, where the type graph is in view.
- */
-export const $totals = (
-  ctx: Ctx,
-  target: ModelProperty,
-  ...sources: ModelProperty[]
-) => set(ctx, stateKeys.totals, target, sources);

@@ -87,9 +87,3 @@ enum Operator {
   contains,
   exists,
 }
-
-enum Op {
-  Sum,
-  Subtract,
-  PercentOf,
-}

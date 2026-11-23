@@ -237,98 +237,6 @@ describe("$onValidate", () => {
     });
   });
 
-  describe("calculation-path-unresolved", () => {
-    it("rejects a misspelled path across a repeated boundary", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          /** Money. */
-          @Meta.question(#{ id: "budget/money" })
-          @Meta.tag(TagName.money)
-          scalar Money extends string;
-
-          model Period { amount?: Money; }
-          model Summary {
-            @Validation.computedFrom(Op.Sum, "/periods[*].amunt")
-            total?: Money;
-          }
-          ${formMeta("path-check")}
-          model PathCheck {
-            periods?: Period[];
-            summary?: Summary;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/calculation-path-unresolved",
-      });
-    });
-
-    it("accepts an existing path across a repeated boundary", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            /** Money. */
-            @Meta.question(#{ id: "budget/money" })
-            @Meta.tag(TagName.money)
-            scalar Money extends string;
-
-            model Period { amount?: Money; }
-            model Summary {
-              @Validation.computedFrom(Op.Sum, "/periods[*].amount")
-              total?: Money;
-            }
-            ${formMeta("path-check")}
-            model PathCheck {
-              periods?: Period[];
-              summary?: Summary;
-            }
-          `),
-        ),
-      );
-    });
-
-    it("accepts a parent-scoped path inside a reusable nested composition", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            model Period { amount?: string; }
-            model Summary {
-              @Validation.computedFrom(Op.Sum, "../periods[*].amount")
-              total?: string;
-            }
-            model BudgetDetails {
-              periods?: Period[];
-              summary?: Summary;
-            }
-            ${formMeta("nested-budget")}
-            model NestedBudget { budgets?: BudgetDetails[]; }
-          `),
-        ),
-      );
-    });
-
-    it("rejects a misspelled parent-scoped path", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          model Period { amount?: string; }
-          model Summary {
-            @Validation.computedFrom(Op.Sum, "../periods[*].amunt")
-            total?: string;
-          }
-          model BudgetDetails {
-            periods?: Period[];
-            summary?: Summary;
-          }
-          ${formMeta("nested-budget")}
-          model NestedBudget { budgets?: BudgetDetails[]; }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/calculation-path-unresolved",
-      });
-    });
-  });
-
   describe("form-scoped-question-id", () => {
     it("rejects a question named after a form", async () => {
       const diagnostics = await Tester.diagnose(
@@ -586,49 +494,6 @@ describe("$onValidate", () => {
     });
   });
 
-  describe("calculation-cycle", () => {
-    it("rejects a calculation that depends on itself", async () => {
-      const diagnostics = await Tester.diagnose(
-        bank(`
-          /** A budget. */
-          @Meta.question(#{ id: "budget/cyclic" })
-          @Meta.tag(TagName.money)
-          model Cyclic {
-            @Validation.computed(Op.Sum, Cyclic.b)
-            a?: string;
-
-            @Validation.computed(Op.Sum, Cyclic.a)
-            b?: string;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/calculation-cycle",
-      });
-    });
-
-    it("accepts a chain", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          bank(`
-            /** A budget. */
-            @Meta.question(#{ id: "budget/chained" })
-            @Meta.tag(TagName.money)
-            model Chained {
-              leaf?: string;
-
-              @Validation.computed(Op.Sum, Chained.leaf)
-              mid?: string;
-
-              @Validation.computed(Op.Sum, Chained.mid)
-              top?: string;
-            }
-          `),
-        ),
-      );
-    });
-  });
-
   describe("required-but-unreachable", () => {
     it("rejects a field that is always required but only sometimes visible", async () => {
       const diagnostics = await Tester.diagnose(
@@ -702,40 +567,6 @@ describe("$onValidate", () => {
             model DeclaredWidget {
               @UI.widget(Rendering.Widget.Collapsible)
               note?: string;
-            }
-          `),
-        ),
-      );
-    });
-  });
-
-  describe("calculation-materialization-without-calculation", () => {
-    it("rejects a materialization policy without a calculation", async () => {
-      const diagnostics = await Tester.diagnose(
-        form(`
-          ${formMeta("invalid-materialization")}
-          model InvalidMaterialization {
-            @Validation.materializeWhenAnySourcePresent
-            total?: decimal;
-          }
-        `),
-      );
-      expectDiagnostics(diagnostics, {
-        code: "simpler-forms/calculation-materialization-without-calculation",
-      });
-    });
-
-    it("accepts the policy on a declared calculation", async () => {
-      expectDiagnosticEmpty(
-        await Tester.diagnose(
-          form(`
-            ${formMeta("valid-materialization")}
-            model ValidMaterialization {
-              left?: decimal;
-              right?: decimal;
-              @Validation.materializeWhenAnySourcePresent
-              @Validation.computed(Op.Sum, ValidMaterialization.left, ValidMaterialization.right)
-              total?: decimal;
             }
           `),
         ),
