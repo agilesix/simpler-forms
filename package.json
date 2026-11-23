@@ -1,6 +1,6 @@
 {
   "name": "simpler-forms",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A TypeSpec library for specifying forms once and emitting portable form artifacts.",
   "license": "MIT",
   "repository": {
