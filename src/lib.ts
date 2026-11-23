@@ -342,22 +342,46 @@ export const $lib = createTypeSpecLibrary({
         default: paramMessage`Encoded checkbox contract on ${"name"} is invalid: ${"reason"}.`,
       },
     },
-    "calculation-cycle": {
+    "duplicate-formula": {
       severity: "error",
       messages: {
-        default: paramMessage`Calculation cycle: ${"cycle"}. A calculated value cannot depend on itself.`,
+        default: paramMessage`${"name"} has more than one @Formula. Keep one formula for this answer.`,
       },
     },
-    "calculation-path-unresolved": {
+    "formula-path-invalid": {
       severity: "error",
       messages: {
-        default: paramMessage`Calculation path "${"path"}" does not resolve from ${"scope"}. Cross-boundary calculations must name real canonical data paths.`,
+        default: paramMessage`${"name"} can't read ${"source"}: ${"reason"}.`,
       },
     },
-    "calculation-materialization-without-calculation": {
+    "formula-source-unreachable": {
       severity: "error",
       messages: {
-        default: paramMessage`@Validation.materializeWhenAnySourcePresent on ${"name"} requires @Validation.computed or @Validation.computedFrom.`,
+        default: paramMessage`${"name"} reads ${"model"}.${"field"}, but ${"model"} isn't ${"owner"} or a model that contains it.`,
+      },
+    },
+    "formula-block-mismatch": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has the block type ${"block"}, so it's calculated field by field, but ${"source"} doesn't.`,
+      },
+    },
+    "formula-block-percent": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} has the block type ${"block"}, and @Formula.percentOf takes a percentage of one amount, not of a block.`,
+      },
+    },
+    "formula-reads-block": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} is one value, but ${"source"} has the block type ${"block"}. Give ${"name"} that type to calculate it field by field.`,
+      },
+    },
+    "formula-cycle": {
+      severity: "error",
+      messages: {
+        default: paramMessage`${"name"} reads itself through ${"cycle"}. Remove one of the formulas in the loop.`,
       },
     },
     "date-order-source-invalid": {
@@ -424,11 +448,7 @@ export const $lib = createTypeSpecLibrary({
     requiredPathWhenPositiveDecimalString: {},
     positiveDecimalStringWhenPathPresent: {},
     atLeastOneOf: {},
-    computed: {},
-    computedFrom: {},
-    calculationMaterialization: {},
-    evaluationOrder: {},
-    totals: {},
+    formula: {},
     mappingTargets: {},
     mappedTo: {},
     mappingPaths: {},

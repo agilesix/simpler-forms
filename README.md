@@ -118,8 +118,36 @@ labeled group.
 
 Validation lives on the form and its questions, in the `@Validation.*` decorators:
 conditional requiredness (`@Validation.requiredPaths`, `@Validation.requiredWhen`), constraints
-that apply under a condition, calculated values and more. See `lib/validation.tsp` for the
-full set.
+that apply under a condition, and more. See `lib/validation.tsp` for the full set.
+
+### Formulas
+
+An answer calculated from others, like a budget's total, has a `@Formula.*` decorator: `sum`,
+`subtract` or `percentOf`. A source is a field, or a path of fields written as a tuple, where a
+list means every item. The first field is on the formula's own model, so each place the model
+is used reads its own answers, or on a model that contains it:
+
+```tsp
+model CostRow {
+  total?: Money;
+  nonAllowable?: Money;
+  @Formula.subtract(CostRow.total, CostRow.nonAllowable) allowable?: Money;
+}
+
+model Budget {
+  rows?: CostRow[];
+  @Formula.sum([Budget.rows, CostRow.allowable]) allowableTotal?: Money;
+
+  // A block answer is calculated field by field. It skips the fields it calculates itself,
+  // which are then worked out from the totals.
+  @Formula.sum(Budget.rows) rowTotals?: CostRow;
+}
+```
+
+Formulas say what is calculated, not when: an emitter that runs them in order works the order
+out from what each one reads, and formulas that read each other in a loop are an error. Which
+value types each formula supports is up to the emitter that runs it. An emitter reads a
+field's formula with `propFormula`, which resolves each source to the fields it reads.
 
 A platform's own identity for a form, such as the name and version a submission system knows it
 by, belongs in that platform's TypeSpec library, as a decorator of its own on the same model.

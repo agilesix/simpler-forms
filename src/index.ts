@@ -55,11 +55,11 @@ export const $decorators = {
     requiredWhen: d.$requiredWhen,
     requiredWhenPath: d.$requiredWhenPath,
     notBefore: d.$notBefore,
-    computed: d.$computed,
-    computedFrom: d.$computedFrom,
-    materializeWhenAnySourcePresent: d.$materializeWhenAnySourcePresent,
-    evaluationOrder: d.$evaluationOrder,
-    totals: d.$totals,
+  },
+  "SimplerForms.Formula": {
+    sum: d.$sum,
+    subtract: d.$subtract,
+    percentOf: d.$percentOf,
   },
   "SimplerForms.Mapping": {
     targets: d.$targets,

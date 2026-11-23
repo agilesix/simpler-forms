@@ -83,12 +83,7 @@ export {
   propValidationConstraints,
   propValidationConstraintsWhen,
   propExclusiveValues,
-  propComputed,
-  propComputedFrom,
-  propCalculationMaterialization,
-  propEvaluationOrder,
   propNotBefore,
-  propTotals,
   type ResponseRole,
 } from "./model.js";
 
@@ -101,6 +96,21 @@ export {
   cardinalityRequiredPathWhenPositiveDecimalString,
   cardinalityPositiveDecimalStringWhenPathPresent,
 } from "./model.js";
+
+// --- formulas -------------------------------------------------------------
+// An emitter that calculates answers reads each field's formula here. Sources are resolved
+// to the fields they read, so it never has to look models up in the form.
+export {
+  /** A field's `@Formula`, with each source resolved to the fields it reads. */
+  propFormula,
+  /** The block a formula on a type works on field by field, if it's a block. */
+  formulaBlock,
+  /** The fields a formula on a block calculates: all but the block's own formulas. */
+  formulaBlockFields,
+  type Formula,
+  type FormulaName,
+  type FormulaSource,
+} from "./formula.js";
 
 // --- mapping --------------------------------------------------------------
 // A mapping emitter takes the members it emits as an option, checks them against
