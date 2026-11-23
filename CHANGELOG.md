@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0](https://github.com/agilesix/simpler-forms/compare/v0.2.0...v0.3.0) (2026-11-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* the Validation calculation decorators and Op are removed.
+    - @Validation.computed(Op.Sum, A.x, A.y) is @Formula.sum(A.x, A.y), and
+      likewise subtract and percentOf.
+    - @Validation.computedFrom(Op.Sum, "lines[*].x") is
+      @Formula.sum([A.lines, Line.x]).
+    - @Validation.totals(A.rows) is @Formula.sum(A.rows) on the block answer.
+    - @Validation.evaluationOrder is gone: the order follows from what each
+      formula reads.
+    - @Validation.materializeWhenAnySourcePresent is gone.
+
+### Features
+
+* replace the calculation decorators with a Formula namespace ([#38](https://github.com/agilesix/simpler-forms/issues/38)) ([9007f7c](https://github.com/agilesix/simpler-forms/commit/9007f7c512905a346fd57c5b1cee5e1199591e48))
+
 ## [0.2.0](https://github.com/agilesix/simpler-forms/compare/v0.1.0...v0.2.0) (2026-11-19)
 
 
