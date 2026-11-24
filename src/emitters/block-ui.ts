@@ -169,10 +169,12 @@ function fieldSource(
   program: Program,
   prop: ModelProperty,
 ): LayoutSource | undefined {
+  const type = prop.type;
+  // A list lays out as one control, even when a question names it (#41).
+  if (type.kind === "Model" && type.indexer) return undefined;
   const child = childBlock(program, prop);
   if (child) return child.scalar ? undefined : child;
-  const type = prop.type;
-  if (type.kind !== "Model" || type.indexer) return undefined;
+  if (type.kind !== "Model") return undefined;
   return layoutSource(program, type);
 }
 
