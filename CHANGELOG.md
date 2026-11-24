@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/agilesix/simpler-forms/compare/v0.3.0...v0.3.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* lay out a named list question as one control ([#42](https://github.com/agilesix/simpler-forms/issues/42)) ([1243982](https://github.com/agilesix/simpler-forms/commit/124398274a50e09a52bd4fd2497ebaee44713ac1))
+
 ## [0.3.0](https://github.com/agilesix/simpler-forms/compare/v0.2.0...v0.3.0) (2026-11-23)
 
 
