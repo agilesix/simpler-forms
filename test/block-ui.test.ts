@@ -182,6 +182,51 @@ describe("emitBlockUi", () => {
 
       expect(ui.elements?.[0]?.options?.detail).toBeUndefined();
     });
+
+    it.each([
+      ["of scalars", "string[]", undefined],
+      [
+        "of objects",
+        "QuestionContact[]",
+        ["#/properties/name", "#/properties/email"],
+      ],
+    ])(
+      "lays out a list a question names (%s) as one control (#41)",
+      async (_, type, detailScopes) => {
+        const ui = await formUi(
+          spec(`
+            @UI.widgets(Widget)
+            namespace Rendering { enum Widget { AttachmentArray } }
+            @Meta.question(#{ id: "research/appendix" })
+            @UI.label("Appendix")
+            @maxItems(10)
+            model Appendix is ${type};
+            ${formMeta("named-list")}
+            model NamedList {
+              @UI.label("13. Appendix")
+              @UI.widget(Rendering.Widget.AttachmentArray)
+              appendix?: Appendix;
+              other?: Appendix;
+            }
+          `),
+        );
+
+        const [labelled, plain] = ui.elements ?? [];
+        expect(labelled).toMatchObject({
+          type: "Control",
+          scope: "#/properties/appendix",
+          label: "13. Appendix",
+          options: { widget: "AttachmentArray" },
+        });
+        expect(plain).toMatchObject({
+          type: "Control",
+          scope: "#/properties/other",
+          label: "Appendix",
+        });
+        const detail = labelled?.options?.detail as UiNode | undefined;
+        expect(detail && scopes(detail)).toEqual(detailScopes);
+      },
+    );
   });
 
   describe("@UI.hiddenWhen", () => {
