@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/agilesix/simpler-forms/compare/v0.3.1...v0.3.2) (2026-11-25)
+
+
+### Bug Fixes
+
+* emit a property's condition on its Group ([#47](https://github.com/agilesix/simpler-forms/issues/47)) ([34de783](https://github.com/agilesix/simpler-forms/commit/34de783479ab6f55cafa12637be85919903e1b62))
+* resolve notBefore in a copied model ([#48](https://github.com/agilesix/simpler-forms/issues/48)) ([8b94a93](https://github.com/agilesix/simpler-forms/commit/8b94a9359a82eb50192915aac05bf37262a8f8f5))
+
 ## [0.3.1](https://github.com/agilesix/simpler-forms/compare/v0.3.0...v0.3.1) (2026-11-24)
 
 
