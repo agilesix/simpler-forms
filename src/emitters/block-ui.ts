@@ -179,6 +179,26 @@ function fieldSource(
 }
 
 /**
+ * The JSON Forms rule for a property's own display condition. A visibility condition wins
+ * over an enabling one, and an enabling one over a read-only one.
+ */
+function propRule(
+  program: Program,
+  prop: ModelProperty,
+): UiNode["rule"] | undefined {
+  const visible = propVisibleWhen(program, prop);
+  if (visible.length === 1)
+    return { effect: "SHOW", condition: jsonFormsCondition(visible[0]) };
+  const enabled = propEnabledWhen(program, prop);
+  if (enabled.length === 1)
+    return { effect: "ENABLE", condition: jsonFormsCondition(enabled[0]) };
+  const readOnly = propReadOnlyWhen(program, prop);
+  if (readOnly.length === 1)
+    return { effect: "DISABLE", condition: jsonFormsCondition(readOnly[0]) };
+  return undefined;
+}
+
+/**
  * One property as its model lays it out, scoped to that model: a Group of a composed
  * question's fields, or of a model the form declares itself, or a Control.
  *
@@ -199,6 +219,9 @@ export function propertyUi(program: Program, prop: ModelProperty): UiNode {
         ...(description ? { description } : {}),
         ...(widget ? { widget } : {}),
       };
+    // Add the rule after re-scoping the fields: its condition names a sibling of the property.
+    const rule = propRule(program, prop);
+    if (rule) group.rule = rule;
     return group;
   }
 
@@ -217,32 +240,8 @@ export function propertyUi(program: Program, prop: ModelProperty): UiNode {
   if (propReadOnly(program, prop))
     node.options = { ...(node.options ?? {}), readonly: true };
 
-  const conds = propVisibleWhen(program, prop);
-  if (conds.length === 1) {
-    const c = conds[0];
-    node.rule = {
-      effect: "SHOW",
-      condition: jsonFormsCondition(c),
-    };
-  } else {
-    const enabled = propEnabledWhen(program, prop);
-    if (enabled.length === 1) {
-      const c = enabled[0];
-      node.rule = {
-        effect: "ENABLE",
-        condition: jsonFormsCondition(c),
-      };
-    } else {
-      const readOnly = propReadOnlyWhen(program, prop);
-      if (readOnly.length === 1) {
-        const c = readOnly[0];
-        node.rule = {
-          effect: "DISABLE",
-          condition: jsonFormsCondition(c),
-        };
-      }
-    }
-  }
+  const rule = propRule(program, prop);
+  if (rule) node.rule = rule;
 
   return node;
 }
