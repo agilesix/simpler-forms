@@ -279,8 +279,38 @@ export const propEnabledWhen = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.enabledWhen, prop) as Condition[]) ?? [];
 export const propRequiredWhen = (p: Program, prop: ModelProperty) =>
   (g(p, stateKeys.requiredWhen, prop) as Condition[]) ?? [];
-export const propNotBefore = (p: Program, prop: ModelProperty) =>
-  g(p, stateKeys.notBefore, prop) as ModelProperty | undefined;
+/**
+ * The sibling date `prop` must not precede. A spread or `OptionalProperties<>` copy repeats the
+ * decorator with the original sibling, so resolve it by name in the copy's own model. Returns
+ * nothing when the source isn't a different sibling, which validation reports.
+ */
+export const propNotBefore = (
+  p: Program,
+  prop: ModelProperty,
+): ModelProperty | undefined => {
+  const source = g(p, stateKeys.notBefore, prop) as ModelProperty | undefined;
+  if (!source || !prop.model) return undefined;
+  if (!copiedFrom(prop).some((origin) => origin.model === source.model))
+    return undefined;
+  const sibling = prop.model.properties.get(source.name);
+  return sibling && sibling !== prop ? sibling : undefined;
+};
+
+/** Whether `prop` has a `@Validation.notBefore`, resolvable or not. */
+export const hasNotBefore = (p: Program, prop: ModelProperty) =>
+  g(p, stateKeys.notBefore, prop) !== undefined;
+
+/** The name of the property `@Validation.notBefore` names, as written. */
+export const notBeforeSourceName = (p: Program, prop: ModelProperty) =>
+  (g(p, stateKeys.notBefore, prop) as ModelProperty | undefined)?.name ?? "";
+
+/** `prop` and each property it was copied from, nearest first. */
+function copiedFrom(prop: ModelProperty): ModelProperty[] {
+  const out: ModelProperty[] = [];
+  for (let at: ModelProperty | undefined = prop; at; at = at.sourceProperty)
+    out.push(at);
+  return out;
+}
 
 // --- mapping ----------------------------------------------------------------
 

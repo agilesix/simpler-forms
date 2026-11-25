@@ -24,6 +24,8 @@ import {
   propEncodedCheckboxGroup,
   modelProperties,
   propEnabledWhen,
+  hasNotBefore,
+  notBeforeSourceName,
   propNotBefore,
   propReadOnlyWhen,
   propRequiredWhen,
@@ -287,13 +289,18 @@ function checkDateOrders(program: Program): void {
   const visit = (namespace: Namespace): void => {
     for (const model of namespace.models.values()) {
       for (const prop of model.properties.values()) {
-        const source = propNotBefore(program, prop);
-        if (!source || (source !== prop && source.model === prop.model))
+        if (!hasNotBefore(program, prop) || propNotBefore(program, prop))
           continue;
         reportDiagnostic(program, {
           code: "date-order-source-invalid",
-          target: prop,
-          format: { target: prop.name, source: source.name },
+          // A copy shares its original's declaration, so point at the model that copied it.
+          target: prop.sourceProperty ? model : prop,
+          format: {
+            target: prop.sourceProperty
+              ? `${model.name}.${prop.name}`
+              : prop.name,
+            source: notBeforeSourceName(program, prop),
+          },
         });
       }
     }

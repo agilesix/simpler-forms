@@ -182,6 +182,50 @@ describe("$onValidate", () => {
         ),
       );
     });
+
+    const period = `
+      model Period {
+        start?: plainDate;
+        @Validation.notBefore(Period.start)
+        end?: plainDate;
+      }
+    `;
+
+    it.each([
+      ["a spread", "...Period;"],
+      ["an OptionalProperties<> copy", "...OptionalProperties<Period>;"],
+    ])(
+      "accepts a date copied with its sibling source (%s)",
+      async (_copy, body) => {
+        expectDiagnosticEmpty(
+          await Tester.diagnose(
+            form(`
+            ${period}
+            model OtherPeriod { ${body} }
+            ${formMeta("date-order-check")}
+            model DateOrderCheck { period?: Period; other?: OtherPeriod; }
+          `),
+          ),
+        );
+      },
+    );
+
+    it("rejects a copy whose model has no property named by the source, at the copy", async () => {
+      const diagnostics = await Tester.diagnose(
+        form(`
+          ${period}
+          model EndOnly { ...OmitProperties<Period, "start">; }
+          ${formMeta("date-order-check")}
+          model DateOrderCheck { period?: Period; endOnly?: EndOnly; }
+        `),
+      );
+
+      expectDiagnostics(diagnostics, {
+        code: "simpler-forms/date-order-source-invalid",
+        message:
+          "@Validation.notBefore on EndOnly.end must reference a different sibling property; received start.",
+      });
+    });
   });
 
   describe("encoded-checkbox-contract-invalid", () => {
