@@ -164,6 +164,38 @@ describe("@UI.layout", () => {
       });
     });
 
+    it("places a referenced field with the condition its property declares", async () => {
+      const layout = await ui(
+        `
+        @Meta.form(#{ id: "vendor", formName: "Vendor" })
+        model Vendor {
+          isBusiness?: boolean;
+
+          @UI.visibleWhen(Vendor.isBusiness, true)
+          contact?: Person;
+        }
+
+        @UI.layout(Vendor)
+        model VendorLayout {
+          vendor: {
+            isBusiness: Vendor.isBusiness;
+            contact: Vendor.contact;
+          };
+        }
+      `,
+        "vendor",
+      );
+      const [, contact] = layout.elements[0].elements;
+      expect(contact.type).toEqual("Group");
+      expect(contact.rule).toEqual({
+        effect: "SHOW",
+        condition: {
+          scope: `${P}/isBusiness`,
+          schema: { const: true },
+        },
+      });
+    });
+
     it("lays out a field with @UI.field: listed entries first, the rest after", async () => {
       const layout = await ui(`
         @UI.layout(Contacts)

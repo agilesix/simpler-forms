@@ -269,6 +269,51 @@ describe("emitBlockUi", () => {
     });
   });
 
+  describe("a condition on a property that lays out as a Group", () => {
+    it.each([
+      { decorator: "@UI.visibleWhen", effect: "SHOW", type: "QuestionContact" },
+      {
+        decorator: "@UI.enabledWhen",
+        effect: "ENABLE",
+        type: "QuestionContact",
+      },
+      {
+        decorator: "@UI.readOnlyWhen",
+        effect: "DISABLE",
+        type: "QuestionContact",
+      },
+      { decorator: "@UI.enabledWhen", effect: "ENABLE", type: "Business" },
+    ])(
+      "emits the rule on the Group ($decorator on $type)",
+      async ({ decorator, effect, type }) => {
+        const ui = await formUi(
+          spec(`
+            model Business {
+              size?: string;
+            }
+            ${formMeta("group-rule")}
+            model GroupRule {
+              isBusiness?: boolean;
+              ${decorator}(GroupRule.isBusiness, true)
+              details?: ${type};
+            }
+          `),
+        );
+
+        expect(ui.elements?.[1]).toMatchObject({
+          type: "Group",
+          rule: {
+            effect,
+            condition: {
+              scope: "#/properties/isBusiness",
+              schema: { const: true },
+            },
+          },
+        });
+      },
+    );
+  });
+
   describe("@UI.widget", () => {
     const widgets = `
       @UI.widgets(Widget)
